@@ -1,0 +1,307 @@
+import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
+import { RoastSession, OvenId, AnalysisResult, PredictiveAlert, RoastStage } from '../types/roast';
+import { storageService } from '../services/storageService';
+import { analyticsEngine } from '../services/analyticsEngine';
+import { getStageLabel } from '../utils/formatters';
+
+interface RoastContextType {
+  activeRoasts: Record<OvenId, RoastSession | null>;
+  alerts: PredictiveAlert[];
+  startRoast: (params: { ovenId: OvenId; operatorId: string; operatorName: string; targetQuantityKg?: number; notes?: string }) => void;
+  finishRoast: (ovenId: OvenId) => void;
+  addAnalysis: (ovenId: OvenId, analysis: Omit<AnalysisResult, 'id' | 'timestamp' | 'ovenId' | 'operatorName'>) => Promise<AnalysisResult>;
+  recordHumanFeedback: (ovenId: OvenId, analysisId: string, feedback: 'agreed' | 'disagreed', correctedStage?: RoastStage) => void;
+  getOvenSession: (ovenId: OvenId) => RoastSession | null;
+  dismissAlert: (alertId: string) => void;
+  refreshHistoricalData: () => void;
+}
+
+const RoastContext = createContext<RoastContextType | undefined>(undefined);
+
+export const RoastProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+  const [activeRoasts, setActiveRoasts] = useState<Record<OvenId, RoastSession | null>>(() => storageService.getActiveRoasts());
+  const [alerts, setAlerts] = useState<PredictiveAlert[]>(() => storageService.getAlerts());
+
+  // Save active roasts on change
+  useEffect(() => {
+    storageService.saveActiveRoasts(activeRoasts);
+  }, [activeRoasts]);
+
+  // Save alerts on change
+  useEffect(() => {
+    storageService.saveAlerts(alerts);
+  }, [alerts]);
+
+  // Real-time ticking for active roasts & predictive checks
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setActiveRoasts(prev => {
+        let updated = false;
+        const nextState = { ...prev };
+
+        ([1, 2, 3] as OvenId[]).forEach(ovenId => {
+          const session = nextState[ovenId];
+          if (session && session.status === 'roasting') {
+            updated = true;
+            const newDuration = session.durationSeconds + 1;
+
+            // Check if photo reminder is needed (no analysis in last 150 seconds)
+            const lastAnalysis = session.analyses[session.analyses.length - 1];
+            const secondsSinceLastAnalysis = lastAnalysis
+              ? newDuration - lastAnalysis.timeInRoastSeconds
+              : newDuration;
+
+            if (secondsSinceLastAnalysis === 150) {
+              const reminderAlert: PredictiveAlert = {
+                id: `reminder-${ovenId}-${Date.now()}`,
+                timestamp: new Date().toISOString(),
+                ovenId,
+                severity: 'warning',
+                title: `⚠️ Lembrete de Análise (Forno ${ovenId})`,
+                message: `Torra em andamento há mais de 2.5 min sem nova captura de foto.`,
+                read: false,
+                type: 'photo_reminder',
+              };
+              setAlerts(currAlerts => [reminderAlert, ...currAlerts]);
+            }
+
+            nextState[ovenId] = {
+              ...session,
+              durationSeconds: newDuration,
+            };
+          }
+        });
+
+        return updated ? nextState : prev;
+      });
+    }, 1000);
+
+    return () => clearInterval(interval);
+  }, []);
+
+  // Check Maintenance warning on startup
+  useEffect(() => {
+    ([1, 2, 3] as OvenId[]).forEach(id => {
+      const stats = analyticsEngine.getOvenStats(id);
+      if (stats.isMaintenanceRequired && stats.maintenanceReason) {
+        setAlerts(prev => {
+          const exists = prev.some(a => a.ovenId === id && a.type === 'maintenance');
+          if (exists) return prev;
+          return [{
+            id: `maint-${id}-${Date.now()}`,
+            timestamp: new Date().toISOString(),
+            ovenId: id,
+            severity: 'danger',
+            title: `⚠️ Manutenção Preditiva Requerida`,
+            message: stats.maintenanceReason!,
+            read: false,
+            type: 'maintenance',
+          }, ...prev];
+        });
+      }
+    });
+  }, []);
+
+  const startRoast = useCallback(({ ovenId, operatorId, operatorName, targetQuantityKg, notes }: {
+    ovenId: OvenId;
+    operatorId: string;
+    operatorName: string;
+    targetQuantityKg?: number;
+    notes?: string;
+  }) => {
+    const nowISO = new Date().toISOString();
+    const newSession: RoastSession = {
+      id: `roast-${ovenId}-${Date.now()}`,
+      ovenId,
+      operatorId,
+      operatorName,
+      startTime: nowISO,
+      durationSeconds: 0,
+      status: 'roasting',
+      targetQuantityKg,
+      notes,
+      analyses: [],
+      timeline: [
+        {
+          id: `tl-start-${Date.now()}`,
+          timestamp: nowISO,
+          type: 'started',
+          title: '🚀 Torra Iniciada',
+          description: `Torra iniciada por ${operatorName} no Forno ${ovenId}`,
+          severity: 'info',
+        }
+      ]
+    };
+
+    setActiveRoasts(prev => ({
+      ...prev,
+      [ovenId]: newSession,
+    }));
+  }, []);
+
+  const finishRoast = useCallback((ovenId: OvenId) => {
+    setActiveRoasts(prev => {
+      const current = prev[ovenId];
+      if (!current) return prev;
+
+      const nowISO = new Date().toISOString();
+      const completedSession: RoastSession = {
+        ...current,
+        status: 'completed',
+        endTime: nowISO,
+        finalStage: current.analyses.length > 0
+          ? current.analyses[current.analyses.length - 1].stage
+          : 'ideal',
+        timeline: [
+          ...current.timeline,
+          {
+            id: `tl-end-${Date.now()}`,
+            timestamp: nowISO,
+            type: 'completed',
+            title: '🏁 Torra Finalizada',
+            description: `Torra encerrada com sucesso após ${Math.floor(current.durationSeconds / 60)} min ${current.durationSeconds % 60}s.`,
+            severity: 'success',
+          }
+        ]
+      };
+
+      // Save to persistent history
+      storageService.addSession(completedSession);
+
+      return {
+        ...prev,
+        [ovenId]: null,
+      };
+    });
+  }, []);
+
+  const addAnalysis = useCallback(async (
+    ovenId: OvenId,
+    analysisInput: Omit<AnalysisResult, 'id' | 'timestamp' | 'ovenId' | 'operatorName'>
+  ): Promise<AnalysisResult> => {
+    const session = activeRoasts[ovenId];
+    const nowISO = new Date().toISOString();
+
+    const newAnalysis: AnalysisResult = {
+      ...analysisInput,
+      id: `ans-${Date.now()}`,
+      timestamp: nowISO,
+      ovenId,
+      operatorName: session ? session.operatorName : 'Operador',
+      roastSessionId: session ? session.id : undefined,
+    };
+
+    if (session) {
+      const isIdeal = newAnalysis.stage === 'ideal';
+      const stageLabel = getStageLabel(newAnalysis.stage);
+
+      const timelineEvent = {
+        id: `tl-ans-${Date.now()}`,
+        timestamp: nowISO,
+        type: 'analysis' as const,
+        title: `📷 Análise de IA (${stageLabel})`,
+        description: `Roboflow detectou: ${stageLabel} (${newAnalysis.confidence}% de confiança)`,
+        stage: newAnalysis.stage,
+        analysisId: newAnalysis.id,
+        severity: isIdeal ? 'success' as const : 'info' as const,
+      };
+
+      const updatedSession: RoastSession = {
+        ...session,
+        analyses: [...session.analyses, newAnalysis],
+        timeline: [...session.timeline, timelineEvent],
+      };
+
+      setActiveRoasts(prev => ({
+        ...prev,
+        [ovenId]: updatedSession,
+      }));
+
+      // If Ideal reached, trigger alert
+      if (isIdeal) {
+        setAlerts(currAlerts => [
+          {
+            id: `ideal-alert-${Date.now()}`,
+            timestamp: nowISO,
+            ovenId,
+            severity: 'success',
+            title: `🟢 Ponto Ideal Detectado (Forno ${ovenId})`,
+            message: `A IA identificou o ponto ideal de torra com ${newAnalysis.confidence}% de confiança!`,
+            read: false,
+            type: 'ideal_reached',
+          },
+          ...currAlerts,
+        ]);
+      }
+    }
+
+    return newAnalysis;
+  }, [activeRoasts]);
+
+  const recordHumanFeedback = useCallback((
+    ovenId: OvenId,
+    analysisId: string,
+    feedback: 'agreed' | 'disagreed',
+    correctedStage?: RoastStage
+  ) => {
+    setActiveRoasts(prev => {
+      const session = prev[ovenId];
+      if (!session) return prev;
+
+      const updatedAnalyses = session.analyses.map(a => {
+        if (a.id === analysisId) {
+          return {
+            ...a,
+            humanFeedback: feedback,
+            correctedStage: feedback === 'disagreed' ? correctedStage : undefined,
+          };
+        }
+        return a;
+      });
+
+      return {
+        ...prev,
+        [ovenId]: {
+          ...session,
+          analyses: updatedAnalyses,
+        }
+      };
+    });
+  }, []);
+
+  const getOvenSession = useCallback((ovenId: OvenId) => {
+    return activeRoasts[ovenId];
+  }, [activeRoasts]);
+
+  const dismissAlert = useCallback((alertId: string) => {
+    setAlerts(prev => prev.filter(a => a.id !== alertId));
+  }, []);
+
+  const refreshHistoricalData = useCallback(() => {
+    // Triggers recalculation
+  }, []);
+
+  return (
+    <RoastContext.Provider value={{
+      activeRoasts,
+      alerts,
+      startRoast,
+      finishRoast,
+      addAnalysis,
+      recordHumanFeedback,
+      getOvenSession,
+      dismissAlert,
+      refreshHistoricalData,
+    }}>
+      {children}
+    </RoastContext.Provider>
+  );
+};
+
+export const useRoast = (): RoastContextType => {
+  const context = useContext(RoastContext);
+  if (!context) {
+    throw new Error('useRoast deve ser usado dentro de RoastProvider');
+  }
+  return context;
+};

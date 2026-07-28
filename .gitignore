@@ -1,0 +1,9 @@
+# Dependências
+node_modules/
+
+# Build outputs
+dist/
+build/
+
+# Credenciais locais (opcional)
+.env
