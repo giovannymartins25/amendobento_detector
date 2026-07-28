@@ -25,7 +25,7 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({ onNavigateToRoast 
   };
 
   return (
-    <div className="space-y-6 pb-20">
+    <div className="space-y-6 pb-32">
       
       {/* Top Banner SCADA Overview */}
       <div className="bg-industrial-card border border-industrial-border rounded-3xl p-6 shadow-scada bg-gradient-to-r from-industrial-card via-industrial-card to-industrial-accent/10">

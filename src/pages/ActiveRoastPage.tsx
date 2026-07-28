@@ -128,7 +128,8 @@ export const ActiveRoastPage: React.FC<ActiveRoastPageProps> = ({ ovenId, onBack
   };
 
   return (
-    <div className="space-y-6 pb-28">
+    <div className="space-y-6 pb-44">
+      {/* Top Header */}
       <div className="flex items-center justify-between">
         <button
           onClick={onBack}
@@ -144,6 +145,7 @@ export const ActiveRoastPage: React.FC<ActiveRoastPageProps> = ({ ovenId, onBack
         </div>
       </div>
 
+      {/* Main SCADA Header Box */}
       <div className="bg-industrial-card border border-industrial-border rounded-3xl p-6 shadow-scada bg-gradient-to-b from-industrial-card to-industrial-bg">
         <div className="flex flex-col sm:flex-row items-center justify-between gap-4 text-center sm:text-left border-b border-industrial-border pb-4 mb-4">
           <div className="flex items-center gap-3">
@@ -159,6 +161,7 @@ export const ActiveRoastPage: React.FC<ActiveRoastPageProps> = ({ ovenId, onBack
             </div>
           </div>
 
+          {/* Digital Timer */}
           <div className="bg-industrial-bg border border-industrial-border px-6 py-3 rounded-2xl shadow-inner">
             <span className="text-[10px] font-bold text-industrial-textMuted uppercase tracking-wider block text-center mb-0.5">
               TEMPO DECORRIDO
@@ -169,6 +172,7 @@ export const ActiveRoastPage: React.FC<ActiveRoastPageProps> = ({ ovenId, onBack
           </div>
         </div>
 
+        {/* Predictive Assistant */}
         <div className="bg-industrial-cardHover border border-industrial-borderActive p-3.5 rounded-2xl flex items-start gap-3">
           <Sparkles className="w-5 h-5 text-industrial-accent flex-shrink-0 mt-0.5" />
           <div className="text-xs">
@@ -183,6 +187,7 @@ export const ActiveRoastPage: React.FC<ActiveRoastPageProps> = ({ ovenId, onBack
         </div>
       </div>
 
+      {/* Primary Action (Huge Camera Button) */}
       <div className="space-y-3">
         <button
           onClick={() => setIsCameraOpen(true)}
@@ -254,7 +259,8 @@ export const ActiveRoastPage: React.FC<ActiveRoastPageProps> = ({ ovenId, onBack
 
       <RoastTimeline events={session.timeline} />
 
-      <div className="fixed bottom-0 left-0 right-0 z-40 bg-industrial-card/95 backdrop-blur-md border-t border-industrial-border p-4 shadow-2xl">
+      {/* Sticky Bottom Finish Button (Elevated above BottomNav on mobile) */}
+      <div className="fixed bottom-[60px] lg:bottom-0 left-0 right-0 z-40 bg-industrial-card/95 backdrop-blur-md border-t border-industrial-border p-3 sm:p-4 shadow-2xl">
         <div className="max-w-xl mx-auto">
           <button
             onClick={handleFinish}
