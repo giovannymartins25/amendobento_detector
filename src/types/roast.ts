@@ -1,4 +1,12 @@
-export type OvenId = 1 | 2 | 3;
+export type OvenId = number;
+
+export interface OvenConfig {
+  id: OvenId;
+  name: string;
+  status: 'active' | 'inactive';
+  installedAt?: string;
+  notes?: string;
+}
 
 export type RoastStatus = 'idle' | 'roasting' | 'completed' | 'paused';
 

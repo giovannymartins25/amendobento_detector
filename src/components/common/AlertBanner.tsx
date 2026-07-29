@@ -1,11 +1,13 @@
 import React from 'react';
 import { useRoast } from '../../contexts/RoastContext';
+import { useAuth } from '../../contexts/AuthContext';
 import { AlertTriangle, CheckCircle2, Info, X } from 'lucide-react';
 
 export const AlertBanner: React.FC = () => {
   const { alerts, dismissAlert } = useRoast();
+  const { isAdmin } = useAuth();
 
-  if (alerts.length === 0) return null;
+  if (!isAdmin || alerts.length === 0) return null;
 
   return (
     <div className="max-w-7xl mx-auto px-4 pt-4 space-y-2">

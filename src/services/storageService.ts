@@ -1,4 +1,4 @@
-import { RoastSession, AnalysisResult, PredictiveAlert, User, OvenId, RoastStage } from '../types/roast';
+import { RoastSession, AnalysisResult, PredictiveAlert, User, OvenId, RoastStage, OvenConfig } from '../types/roast';
 
 const STORAGE_KEYS = {
   SESSIONS: 'amendobento_roast_sessions',
@@ -6,6 +6,8 @@ const STORAGE_KEYS = {
   ALERTS: 'amendobento_alerts',
   CURRENT_USER: 'amendobento_current_user',
   CUSTOM_IMAGES: 'amendobento_custom_images',
+  OVENS: 'amendobento_ovens',
+  IS_LOGGED_IN: 'amendobento_is_logged_in',
 };
 
 export const INITIAL_USERS: User[] = [
@@ -17,6 +19,12 @@ export const INITIAL_USERS: User[] = [
 
 export const DEFAULT_OPERATOR = INITIAL_USERS[0];
 export const DEFAULT_ADMIN = INITIAL_USERS[3];
+
+export const INITIAL_OVENS: OvenConfig[] = [
+  { id: 1, name: 'Forno 1', status: 'active', installedAt: '2025-01-15', notes: 'Linha Principal' },
+  { id: 2, name: 'Forno 2', status: 'active', installedAt: '2025-02-01', notes: 'Linha Secundária' },
+  { id: 3, name: 'Forno 3', status: 'inactive', installedAt: 'Aguardando Chegada', notes: 'Novo forno encomendado (Ativar ao instalar)' },
+];
 
 // Initial mock dataset for industrial calculations & charts
 function generateInitialHistoricalSessions(): RoastSession[] {
@@ -100,6 +108,23 @@ function generateInitialHistoricalSessions(): RoastSession[] {
 }
 
 export const storageService = {
+  getOvens(): OvenConfig[] {
+    const data = localStorage.getItem(STORAGE_KEYS.OVENS);
+    if (!data) {
+      localStorage.setItem(STORAGE_KEYS.OVENS, JSON.stringify(INITIAL_OVENS));
+      return INITIAL_OVENS;
+    }
+    try {
+      return JSON.parse(data);
+    } catch {
+      return INITIAL_OVENS;
+    }
+  },
+
+  saveOvens(ovens: OvenConfig[]): void {
+    localStorage.setItem(STORAGE_KEYS.OVENS, JSON.stringify(ovens));
+  },
+
   getSessions(): RoastSession[] {
     const data = localStorage.getItem(STORAGE_KEYS.SESSIONS);
     if (!data) {
@@ -132,12 +157,12 @@ export const storageService = {
   getActiveRoasts(): Record<OvenId, RoastSession | null> {
     const data = localStorage.getItem(STORAGE_KEYS.ACTIVE_ROASTS);
     if (!data) {
-      return { 1: null, 2: null, 3: null };
+      return {};
     }
     try {
       return JSON.parse(data);
     } catch {
-      return { 1: null, 2: null, 3: null };
+      return {};
     }
   },
 
@@ -177,5 +202,14 @@ export const storageService = {
 
   saveCurrentUser(user: User): void {
     localStorage.setItem(STORAGE_KEYS.CURRENT_USER, JSON.stringify(user));
+  },
+
+  getIsLoggedIn(): boolean {
+    const data = localStorage.getItem(STORAGE_KEYS.IS_LOGGED_IN);
+    return data ? JSON.parse(data) : false;
+  },
+
+  saveIsLoggedIn(isLoggedIn: boolean): void {
+    localStorage.setItem(STORAGE_KEYS.IS_LOGGED_IN, JSON.stringify(isLoggedIn));
   }
 };

@@ -15,7 +15,7 @@ export const NewRoastModal: React.FC<NewRoastModalProps> = ({
   onClose,
   onRoastStarted,
 }) => {
-  const { users, currentUser } = useAuth();
+  const { users, currentUser, isAdmin } = useAuth();
   const { startRoast } = useRoast();
 
   const [selectedOperatorId, setSelectedOperatorId] = useState(currentUser.id);
@@ -104,20 +104,22 @@ export const NewRoastModal: React.FC<NewRoastModalProps> = ({
               />
             </div>
 
-            {/* Notes */}
-            <div>
-              <label className="block text-xs font-bold text-industrial-textSecondary uppercase tracking-wider mb-1.5 flex items-center gap-2">
-                <FileText className="w-4 h-4 text-purple-400" />
-                Observações do Lote <span className="text-industrial-textMuted text-[10px]">(Opcional)</span>
-              </label>
-              <input
-                type="text"
-                value={notes}
-                onChange={(e) => setNotes(e.target.value)}
-                placeholder="Ex: Lote de amendoim cultivar IAC Tatu ST..."
-                className="w-full bg-industrial-bg border border-industrial-border rounded-xl p-3 text-white text-sm focus:border-industrial-accent focus:outline-none"
-              />
-            </div>
+            {/* Notes (Only for Admin) */}
+            {isAdmin && (
+              <div>
+                <label className="block text-xs font-bold text-industrial-textSecondary uppercase tracking-wider mb-1.5 flex items-center gap-2">
+                  <FileText className="w-4 h-4 text-purple-400" />
+                  Observações do Lote <span className="text-industrial-textMuted text-[10px]">(Opcional)</span>
+                </label>
+                <input
+                  type="text"
+                  value={notes}
+                  onChange={(e) => setNotes(e.target.value)}
+                  placeholder="Ex: Lote de amendoim cultivar IAC Tatu ST..."
+                  className="w-full bg-industrial-bg border border-industrial-border rounded-xl p-3 text-white text-sm focus:border-industrial-accent focus:outline-none"
+                />
+              </div>
+            )}
 
           </div>
 

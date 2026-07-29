@@ -1,9 +1,10 @@
 import React, { useState } from 'react';
-import { AuthProvider } from './contexts/AuthContext';
+import { AuthProvider, useAuth } from './contexts/AuthContext';
 import { RoastProvider } from './contexts/RoastContext';
 import { Navbar } from './components/common/Navbar';
 import { BottomNav } from './components/common/BottomNav';
 import { AlertBanner } from './components/common/AlertBanner';
+import { LoginPage } from './components/auth/LoginPage';
 import { DashboardPage } from './pages/DashboardPage';
 import { ActiveRoastPage } from './pages/ActiveRoastPage';
 import { KioskTvPage } from './pages/KioskTvPage';
@@ -12,11 +13,17 @@ import { HistoryPage } from './pages/HistoryPage';
 import { ImageGalleryPage } from './pages/ImageGalleryPage';
 import { AiPerformancePage } from './pages/AiPerformancePage';
 import { ModelEvolutionPage } from './pages/ModelEvolutionPage';
+import { OvenManagementPage } from './pages/OvenManagementPage';
 import { OvenId } from './types/roast';
 
 export const AppContent: React.FC = () => {
+  const { isAuthenticated, isAdmin } = useAuth();
   const [activeTab, setActiveTab] = useState<string>('dashboard');
   const [selectedOvenForRoastView, setSelectedOvenForRoastView] = useState<OvenId | null>(null);
+
+  if (!isAuthenticated) {
+    return <LoginPage />;
+  }
 
   const handleNavigateToRoast = (ovenId: OvenId) => {
     setSelectedOvenForRoastView(ovenId);
@@ -39,7 +46,10 @@ export const AppContent: React.FC = () => {
       {/* Main Content Area */}
       <main className="flex-1 max-w-7xl w-full mx-auto px-4 py-6">
         {activeTab === 'dashboard' && (
-          <DashboardPage onNavigateToRoast={handleNavigateToRoast} />
+          <DashboardPage
+            onNavigateToRoast={handleNavigateToRoast}
+            onNavigateToOvenMgmt={() => setActiveTab('ovens-mgmt')}
+          />
         )}
 
         {activeTab === 'roast' && selectedOvenForRoastView && (
@@ -50,23 +60,27 @@ export const AppContent: React.FC = () => {
           <KioskTvPage />
         )}
 
-        {activeTab === 'admin' && (
+        {isAdmin && activeTab === 'ovens-mgmt' && (
+          <OvenManagementPage />
+        )}
+
+        {isAdmin && activeTab === 'admin' && (
           <AdminDashboardPage />
         )}
 
-        {activeTab === 'history' && (
+        {isAdmin && activeTab === 'history' && (
           <HistoryPage />
         )}
 
-        {activeTab === 'gallery' && (
+        {isAdmin && activeTab === 'gallery' && (
           <ImageGalleryPage />
         )}
 
-        {activeTab === 'ai-performance' && (
+        {isAdmin && activeTab === 'ai-performance' && (
           <AiPerformancePage />
         )}
 
-        {activeTab === 'model-evolution' && (
+        {isAdmin && activeTab === 'model-evolution' && (
           <ModelEvolutionPage />
         )}
       </main>

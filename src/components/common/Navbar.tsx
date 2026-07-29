@@ -1,6 +1,6 @@
 import React from 'react';
 import { useAuth } from '../../contexts/AuthContext';
-import { Flame, Tv, BarChart3, History, Image as ImageIcon, BrainCircuit, UserCheck, ShieldCheck } from 'lucide-react';
+import { Flame, Tv, BarChart3, History, Image as ImageIcon, BrainCircuit, UserCheck, ShieldCheck, LogOut, Settings } from 'lucide-react';
 
 interface NavbarProps {
   activeTab: string;
@@ -8,7 +8,7 @@ interface NavbarProps {
 }
 
 export const Navbar: React.FC<NavbarProps> = ({ activeTab, setActiveTab }) => {
-  const { currentUser, users, loginAs, isAdmin } = useAuth();
+  const { currentUser, logout, isAdmin } = useAuth();
 
   return (
     <header className="bg-industrial-card border-b border-industrial-border sticky top-0 z-40 shadow-scada">
@@ -60,74 +60,94 @@ export const Navbar: React.FC<NavbarProps> = ({ activeTab, setActiveTab }) => {
             Painel TV
           </button>
 
-          <button
-            onClick={() => setActiveTab('admin')}
-            className={`flex items-center gap-2 px-3.5 py-2 rounded-lg text-sm font-medium transition-all ${
-              activeTab === 'admin'
-                ? 'bg-industrial-accent text-white shadow-scada-glow'
-                : 'text-industrial-textSecondary hover:text-white hover:bg-industrial-card'
-            }`}
-          >
-            <BarChart3 className="w-4 h-4" />
-            Métricas KPI
-          </button>
+          {/* Admin Exclusive Tabs */}
+          {isAdmin && (
+            <>
+              <button
+                onClick={() => setActiveTab('ovens-mgmt')}
+                className={`flex items-center gap-2 px-3.5 py-2 rounded-lg text-sm font-medium transition-all ${
+                  activeTab === 'ovens-mgmt'
+                    ? 'bg-industrial-accent text-white shadow-scada-glow'
+                    : 'text-industrial-textSecondary hover:text-white hover:bg-industrial-card'
+                }`}
+              >
+                <Settings className="w-4 h-4 text-amber-400" />
+                Gerenciar Fornos
+              </button>
 
-          <button
-            onClick={() => setActiveTab('history')}
-            className={`flex items-center gap-2 px-3.5 py-2 rounded-lg text-sm font-medium transition-all ${
-              activeTab === 'history'
-                ? 'bg-industrial-accent text-white shadow-scada-glow'
-                : 'text-industrial-textSecondary hover:text-white hover:bg-industrial-card'
-            }`}
-          >
-            <History className="w-4 h-4" />
-            Histórico
-          </button>
+              <button
+                onClick={() => setActiveTab('admin')}
+                className={`flex items-center gap-2 px-3.5 py-2 rounded-lg text-sm font-medium transition-all ${
+                  activeTab === 'admin'
+                    ? 'bg-industrial-accent text-white shadow-scada-glow'
+                    : 'text-industrial-textSecondary hover:text-white hover:bg-industrial-card'
+                }`}
+              >
+                <BarChart3 className="w-4 h-4" />
+                Métricas KPI
+              </button>
 
-          <button
-            onClick={() => setActiveTab('gallery')}
-            className={`flex items-center gap-2 px-3.5 py-2 rounded-lg text-sm font-medium transition-all ${
-              activeTab === 'gallery'
-                ? 'bg-industrial-accent text-white shadow-scada-glow'
-                : 'text-industrial-textSecondary hover:text-white hover:bg-industrial-card'
-            }`}
-          >
-            <ImageIcon className="w-4 h-4" />
-            Galeria
-          </button>
+              <button
+                onClick={() => setActiveTab('history')}
+                className={`flex items-center gap-2 px-3.5 py-2 rounded-lg text-sm font-medium transition-all ${
+                  activeTab === 'history'
+                    ? 'bg-industrial-accent text-white shadow-scada-glow'
+                    : 'text-industrial-textSecondary hover:text-white hover:bg-industrial-card'
+                }`}
+              >
+                <History className="w-4 h-4" />
+                Histórico
+              </button>
 
-          <button
-            onClick={() => setActiveTab('ai-performance')}
-            className={`flex items-center gap-2 px-3.5 py-2 rounded-lg text-sm font-medium transition-all ${
-              activeTab === 'ai-performance'
-                ? 'bg-industrial-accent text-white shadow-scada-glow'
-                : 'text-industrial-textSecondary hover:text-white hover:bg-industrial-card'
-            }`}
-          >
-            <BrainCircuit className="w-4 h-4 text-purple-400" />
-            Métricas IA
-          </button>
+              <button
+                onClick={() => setActiveTab('gallery')}
+                className={`flex items-center gap-2 px-3.5 py-2 rounded-lg text-sm font-medium transition-all ${
+                  activeTab === 'gallery'
+                    ? 'bg-industrial-accent text-white shadow-scada-glow'
+                    : 'text-industrial-textSecondary hover:text-white hover:bg-industrial-card'
+                }`}
+              >
+                <ImageIcon className="w-4 h-4" />
+                Galeria
+              </button>
+
+              <button
+                onClick={() => setActiveTab('ai-performance')}
+                className={`flex items-center gap-2 px-3.5 py-2 rounded-lg text-sm font-medium transition-all ${
+                  activeTab === 'ai-performance'
+                    ? 'bg-industrial-accent text-white shadow-scada-glow'
+                    : 'text-industrial-textSecondary hover:text-white hover:bg-industrial-card'
+                }`}
+              >
+                <BrainCircuit className="w-4 h-4 text-purple-400" />
+                Métricas IA
+              </button>
+            </>
+          )}
         </nav>
 
-        {/* User Switcher (Operador / Admin) */}
+        {/* User Profile & Logout */}
         <div className="flex items-center gap-3">
-          <div className="hidden sm:flex items-center gap-2 bg-industrial-bg px-3 py-1.5 rounded-lg border border-industrial-border">
+          <div className="flex items-center gap-2 bg-industrial-bg px-3 py-1.5 rounded-xl border border-industrial-border">
             {isAdmin ? (
-              <ShieldCheck className="w-4 h-4 text-amber-400" />
+              <ShieldCheck className="w-4 h-4 text-blue-400" />
             ) : (
               <UserCheck className="w-4 h-4 text-emerald-400" />
             )}
-            <select
-              value={currentUser.id}
-              onChange={(e) => loginAs(e.target.value)}
-              className="bg-transparent text-white text-xs font-semibold focus:outline-none cursor-pointer"
+            <div className="text-xs font-bold text-white">
+              {currentUser.name}
+              <span className={`block text-[9px] uppercase tracking-wider ${isAdmin ? 'text-blue-400' : 'text-emerald-400'}`}>
+                {isAdmin ? 'ADMIN / SUPERVISÃO' : 'OPERADOR'}
+              </span>
+            </div>
+
+            <button
+              onClick={logout}
+              title="Trocar de Usuário / Sair"
+              className="ml-2 p-1.5 text-industrial-textMuted hover:text-rose-400 hover:bg-industrial-card rounded-lg transition-colors"
             >
-              {users.map(u => (
-                <option key={u.id} value={u.id} className="bg-industrial-card text-white">
-                  {u.name} ({u.role === 'admin' ? 'SUPERVISOR' : 'OPERADOR'})
-                </option>
-              ))}
-            </select>
+              <LogOut className="w-4 h-4" />
+            </button>
           </div>
         </div>
 
