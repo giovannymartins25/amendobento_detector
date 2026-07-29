@@ -41,11 +41,11 @@ export const NewRoastModal: React.FC<NewRoastModalProps> = ({
   };
 
   return (
-    <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-end sm:items-center justify-center p-0 sm:p-4 animate-fade-in">
-      <div className="w-full max-w-lg bg-industrial-card border border-industrial-border rounded-t-3xl sm:rounded-3xl p-6 shadow-2xl space-y-5">
+    <div className="fixed inset-0 z-[60] bg-black/85 backdrop-blur-md flex items-center justify-center p-4 sm:p-6 animate-fade-in overflow-y-auto">
+      <div className="w-full max-w-lg bg-industrial-card border border-industrial-border rounded-3xl p-5 sm:p-6 shadow-2xl space-y-4 max-h-[85vh] overflow-y-auto my-auto">
         
         {/* Header */}
-        <div className="flex items-center justify-between border-b border-industrial-border pb-4">
+        <div className="flex items-center justify-between border-b border-industrial-border pb-3">
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 rounded-xl bg-emerald-500/20 text-emerald-400 flex items-center justify-center font-mono font-extrabold border border-emerald-500/40">
               F{ovenId}
@@ -68,14 +68,14 @@ export const NewRoastModal: React.FC<NewRoastModalProps> = ({
           
           {/* Operator Select */}
           <div>
-            <label className="block text-xs font-bold text-industrial-textSecondary uppercase tracking-wider mb-2 flex items-center gap-2">
+            <label className="block text-xs font-bold text-industrial-textSecondary uppercase tracking-wider mb-1.5 flex items-center gap-2">
               <User className="w-4 h-4 text-industrial-accent" />
               Operador Responsável
             </label>
             <select
               value={selectedOperatorId}
               onChange={(e) => setSelectedOperatorId(e.target.value)}
-              className="w-full bg-industrial-bg border border-industrial-border rounded-xl p-3.5 text-white font-semibold text-sm focus:border-industrial-accent focus:outline-none"
+              className="w-full bg-industrial-bg border border-industrial-border rounded-xl p-3 text-white font-semibold text-sm focus:border-industrial-accent focus:outline-none"
             >
               {users.filter(u => u.role === 'operator').map(u => (
                 <option key={u.id} value={u.id} className="bg-industrial-card text-white">
@@ -87,7 +87,7 @@ export const NewRoastModal: React.FC<NewRoastModalProps> = ({
 
           {/* Quantity (Kg) */}
           <div>
-            <label className="block text-xs font-bold text-industrial-textSecondary uppercase tracking-wider mb-2 flex items-center gap-2">
+            <label className="block text-xs font-bold text-industrial-textSecondary uppercase tracking-wider mb-1.5 flex items-center gap-2">
               <Scale className="w-4 h-4 text-emerald-400" />
               Quantidade da Carga (Kg) <span className="text-industrial-textMuted text-[10px]">(Opcional)</span>
             </label>
@@ -96,13 +96,13 @@ export const NewRoastModal: React.FC<NewRoastModalProps> = ({
               value={targetQuantityKg}
               onChange={(e) => setTargetQuantityKg(Number(e.target.value))}
               placeholder="Ex: 50"
-              className="w-full bg-industrial-bg border border-industrial-border rounded-xl p-3.5 text-white font-mono font-bold text-sm focus:border-industrial-accent focus:outline-none"
+              className="w-full bg-industrial-bg border border-industrial-border rounded-xl p-3 text-white font-mono font-bold text-sm focus:border-industrial-accent focus:outline-none"
             />
           </div>
 
           {/* Notes */}
           <div>
-            <label className="block text-xs font-bold text-industrial-textSecondary uppercase tracking-wider mb-2 flex items-center gap-2">
+            <label className="block text-xs font-bold text-industrial-textSecondary uppercase tracking-wider mb-1.5 flex items-center gap-2">
               <FileText className="w-4 h-4 text-purple-400" />
               Observações do Lote <span className="text-industrial-textMuted text-[10px]">(Opcional)</span>
             </label>
@@ -111,7 +111,7 @@ export const NewRoastModal: React.FC<NewRoastModalProps> = ({
               value={notes}
               onChange={(e) => setNotes(e.target.value)}
               placeholder="Ex: Lote de amendoim cultivar IAC Tatu ST..."
-              className="w-full bg-industrial-bg border border-industrial-border rounded-xl p-3.5 text-white text-sm focus:border-industrial-accent focus:outline-none"
+              className="w-full bg-industrial-bg border border-industrial-border rounded-xl p-3 text-white text-sm focus:border-industrial-accent focus:outline-none"
             />
           </div>
 
