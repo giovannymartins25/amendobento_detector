@@ -5,21 +5,19 @@ import { OvenId } from '../types/roast';
 import { OvenCard } from '../components/oven/OvenCard';
 import { NewRoastModal } from '../components/oven/NewRoastModal';
 import { analyticsEngine } from '../services/analyticsEngine';
-import { Award, Zap, PlusCircle } from 'lucide-react';
+import { Award, Zap, Power, Flame } from 'lucide-react';
 
 interface DashboardPageProps {
   onNavigateToRoast: (ovenId: OvenId) => void;
   onNavigateToOvenMgmt?: () => void;
 }
 
-export const DashboardPage: React.FC<DashboardPageProps> = ({ onNavigateToRoast, onNavigateToOvenMgmt }) => {
-  const { ovens, activeRoasts } = useRoast();
+export const DashboardPage: React.FC<DashboardPageProps> = ({ onNavigateToRoast }) => {
+  const { ovens, activeRoasts, toggleOvenStatus } = useRoast();
   const { isAdmin } = useAuth();
   const [selectedOvenForNewRoast, setSelectedOvenForNewRoast] = useState<OvenId | null>(null);
 
   const activeOvens = ovens.filter(o => o.status === 'active');
-  const inactiveOvens = ovens.filter(o => o.status === 'inactive');
-
   const kpis = analyticsEngine.getGlobalKpis();
 
   const handleStartRoast = (ovenId: OvenId) => {
@@ -45,7 +43,7 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({ onNavigateToRoast,
               CONTROLE DOS FORNOS DE TORRA
             </h2>
             <p className="text-xs sm:text-sm text-industrial-textSecondary mt-1">
-              Selecione um forno para iniciar a torra ou acompanhar a classificação de IA em tempo real.
+              Selecione um forno para iniciar a torra ou acompanhe a classificação em tempo real.
             </p>
           </div>
 
@@ -60,52 +58,89 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({ onNavigateToRoast,
               <span className="font-mono text-xl font-extrabold text-emerald-400">~{Math.floor(kpis.avgDurationSeconds / 60)} min</span>
             </div>
             <div className="bg-industrial-bg border border-industrial-border p-3 rounded-2xl text-center col-span-2 sm:col-span-1">
-              <span className="text-[10px] font-bold text-industrial-textMuted uppercase tracking-wider block">Fornos Ativos</span>
+              <span className="text-[10px] font-bold text-industrial-textMuted uppercase tracking-wider block">Fornos Visíveis</span>
               <span className="font-mono text-xl font-extrabold text-industrial-accent">
-                {Object.values(activeRoasts).filter(Boolean).length} / {activeOvens.length}
+                {activeOvens.length} de {ovens.length}
               </span>
             </div>
           </div>
         </div>
       </div>
 
-      {/* Main Grid: Active Ovens */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        {activeOvens.map(oven => (
-          <OvenCard
-            key={oven.id}
-            ovenId={oven.id}
-            session={activeRoasts[oven.id]}
-            onStartRoast={handleStartRoast}
-            onViewRoast={onNavigateToRoast}
-          />
-        ))}
-
-        {/* Card indicating inactive ovens (e.g. Oven 3 awaiting arrival) */}
-        {inactiveOvens.map(oven => (
-          <div
-            key={oven.id}
-            className="bg-industrial-card/40 border border-dashed border-industrial-border rounded-2xl p-6 shadow-sm flex flex-col items-center justify-center text-center space-y-3 opacity-75 min-h-[220px]"
-          >
-            <div className="w-12 h-12 rounded-xl bg-amber-500/10 border border-amber-500/30 text-amber-400 font-mono font-extrabold text-xl flex items-center justify-center">
-              F{oven.id}
-            </div>
-            <div>
-              <h3 className="font-mono font-bold text-base text-white">{oven.name}</h3>
-              <p className="text-xs text-amber-300 font-semibold mt-1">🟡 {oven.installedAt || 'Aguardando Instalação'}</p>
-              <p className="text-[11px] text-industrial-textMuted mt-0.5">{oven.notes || 'Equipamento inativo'}</p>
-            </div>
-            {isAdmin && onNavigateToOvenMgmt && (
-              <button
-                onClick={onNavigateToOvenMgmt}
-                className="px-4 py-2 bg-emerald-600/30 hover:bg-emerald-600/50 border border-emerald-500/50 text-emerald-300 text-xs font-bold rounded-xl flex items-center gap-1.5 transition-colors"
-              >
-                <PlusCircle className="w-4 h-4" /> Ativar {oven.name}
-              </button>
-            )}
+      {/* Quick Oven Activation Control Bar */}
+      <div className="bg-industrial-card border border-industrial-border rounded-2xl p-4 shadow-scada flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+        <div className="flex items-center gap-2">
+          <Power className="w-5 h-5 text-industrial-accent" />
+          <div>
+            <h3 className="text-xs font-mono font-extrabold text-white uppercase tracking-wider">
+              CONTROLE DE FORNOS ATIVOS NA TELA
+            </h3>
+            <p className="text-[11px] text-industrial-textMuted">
+              Ative ou desative fornos com 1 clique para manter o painel e a TV limpos
+            </p>
           </div>
-        ))}
+        </div>
+
+        <div className="flex flex-wrap items-center gap-2 w-full sm:w-auto">
+          {ovens.map(oven => {
+            const isActive = oven.status === 'active';
+            return (
+              <button
+                key={oven.id}
+                onClick={() => toggleOvenStatus(oven.id)}
+                className={`px-3.5 py-2 rounded-xl text-xs font-mono font-bold flex items-center gap-2 transition-all ${
+                  isActive
+                    ? 'bg-emerald-500/20 border border-emerald-500/50 text-emerald-300 shadow-success-glow hover:bg-emerald-500/30'
+                    : 'bg-industrial-bg border border-industrial-border text-industrial-textMuted hover:text-white hover:border-slate-500'
+                }`}
+                title={isActive ? `Desativar ${oven.name}` : `Ativar ${oven.name}`}
+              >
+                <span className={`w-2.5 h-2.5 rounded-full ${isActive ? 'bg-emerald-400 animate-ping' : 'bg-slate-600'}`} />
+                <span>{oven.name}</span>
+                <span className="text-[10px] opacity-75 font-sans uppercase">
+                  {isActive ? '(Ativo)' : '+ Ativar'}
+                </span>
+              </button>
+            );
+          })}
+        </div>
       </div>
+
+      {/* Main Grid: Active Ovens */}
+      {activeOvens.length === 0 ? (
+        <div className="bg-industrial-card/40 border border-dashed border-industrial-border rounded-3xl p-12 text-center space-y-4">
+          <div className="w-16 h-16 rounded-full bg-amber-500/10 border border-amber-500/30 text-amber-400 flex items-center justify-center mx-auto">
+            <Flame className="w-8 h-8" />
+          </div>
+          <h3 className="text-lg font-bold text-white font-mono">Nenhum forno ativo no momento</h3>
+          <p className="text-xs text-industrial-textMuted max-w-md mx-auto">
+            Clique nos botões da barra acima para ativar o Forno 1, Forno 2 ou Forno 3 conforme a necessidade de produção.
+          </p>
+          <div className="pt-2 flex justify-center gap-2">
+            {ovens.map(o => (
+              <button
+                key={o.id}
+                onClick={() => toggleOvenStatus(o.id)}
+                className="px-4 py-2 bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs rounded-xl shadow-success-glow transition-all"
+              >
+                🟢 Ativar {o.name}
+              </button>
+            ))}
+          </div>
+        </div>
+      ) : (
+        <div className={`grid gap-6 ${activeOvens.length === 1 ? 'grid-cols-1 max-w-2xl mx-auto' : 'grid-cols-1 md:grid-cols-2 lg:grid-cols-3'}`}>
+          {activeOvens.map(oven => (
+            <OvenCard
+              key={oven.id}
+              ovenId={oven.id}
+              session={activeRoasts[oven.id]}
+              onStartRoast={handleStartRoast}
+              onViewRoast={onNavigateToRoast}
+            />
+          ))}
+        </div>
+      )}
 
       {/* Assistant Recommendation Box */}
       {isAdmin && (

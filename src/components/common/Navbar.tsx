@@ -1,6 +1,7 @@
 import React from 'react';
 import { useAuth } from '../../contexts/AuthContext';
-import { Flame, Tv, BarChart3, History, Image as ImageIcon, BrainCircuit, UserCheck, ShieldCheck, LogOut, Settings } from 'lucide-react';
+import { useRoast } from '../../contexts/RoastContext';
+import { Flame, Tv, BarChart3, History, Image as ImageIcon, BrainCircuit, UserCheck, ShieldCheck, LogOut, Settings, Bell } from 'lucide-react';
 
 interface NavbarProps {
   activeTab: string;
@@ -9,6 +10,7 @@ interface NavbarProps {
 
 export const Navbar: React.FC<NavbarProps> = ({ activeTab, setActiveTab }) => {
   const { currentUser, logout, isAdmin } = useAuth();
+  const { alerts } = useRoast();
 
   return (
     <header className="bg-industrial-card border-b border-industrial-border sticky top-0 z-40 shadow-scada">
@@ -63,6 +65,23 @@ export const Navbar: React.FC<NavbarProps> = ({ activeTab, setActiveTab }) => {
           {/* Admin Exclusive Tabs */}
           {isAdmin && (
             <>
+              <button
+                onClick={() => setActiveTab('alerts')}
+                className={`flex items-center gap-2 px-3.5 py-2 rounded-lg text-sm font-medium transition-all relative ${
+                  activeTab === 'alerts'
+                    ? 'bg-industrial-accent text-white shadow-scada-glow'
+                    : 'text-industrial-textSecondary hover:text-white hover:bg-industrial-card'
+                }`}
+              >
+                <Bell className="w-4 h-4 text-amber-400" />
+                Avisos
+                {alerts.length > 0 && (
+                  <span className="px-1.5 py-0.2 rounded-full text-[10px] font-mono bg-amber-500 text-slate-950 font-black">
+                    {alerts.length}
+                  </span>
+                )}
+              </button>
+
               <button
                 onClick={() => setActiveTab('ovens-mgmt')}
                 className={`flex items-center gap-2 px-3.5 py-2 rounded-lg text-sm font-medium transition-all ${

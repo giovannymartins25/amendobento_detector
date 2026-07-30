@@ -1,6 +1,7 @@
 import React from 'react';
 import { useAuth } from '../../contexts/AuthContext';
-import { Flame, Tv, BarChart3, History, Image as ImageIcon, Settings } from 'lucide-react';
+import { useRoast } from '../../contexts/RoastContext';
+import { Flame, Tv, BarChart3, History, Image as ImageIcon, Settings, Bell } from 'lucide-react';
 
 interface BottomNavProps {
   activeTab: string;
@@ -9,10 +10,11 @@ interface BottomNavProps {
 
 export const BottomNav: React.FC<BottomNavProps> = ({ activeTab, setActiveTab }) => {
   const { isAdmin } = useAuth();
+  const { alerts } = useRoast();
 
   return (
     <div className="lg:hidden fixed bottom-0 left-0 right-0 z-50 bg-industrial-card/95 backdrop-blur-md border-t border-industrial-border shadow-2xl px-2 py-1.5">
-      <div className={`grid gap-1 max-w-md mx-auto ${isAdmin ? 'grid-cols-6' : 'grid-cols-2'}`}>
+      <div className={`grid gap-1 max-w-md mx-auto ${isAdmin ? 'grid-cols-7' : 'grid-cols-2'}`}>
         
         <button
           onClick={() => setActiveTab('dashboard')}
@@ -40,6 +42,21 @@ export const BottomNav: React.FC<BottomNavProps> = ({ activeTab, setActiveTab })
 
         {isAdmin && (
           <>
+            <button
+              onClick={() => setActiveTab('alerts')}
+              className={`flex flex-col items-center justify-center py-2 px-1 rounded-xl transition-all relative ${
+                activeTab === 'alerts'
+                  ? 'text-amber-400 bg-amber-500/15 font-bold'
+                  : 'text-industrial-textMuted hover:text-white'
+              }`}
+            >
+              <Bell className="w-5 h-5 mb-0.5 text-amber-400" />
+              <span className="text-[10px]">Avisos</span>
+              {alerts.length > 0 && (
+                <span className="absolute top-1 right-2 w-2 h-2 rounded-full bg-amber-400 animate-ping" />
+              )}
+            </button>
+
             <button
               onClick={() => setActiveTab('ovens-mgmt')}
               className={`flex flex-col items-center justify-center py-2 px-1 rounded-xl transition-all ${

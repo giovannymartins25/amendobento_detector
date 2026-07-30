@@ -103,8 +103,25 @@ export const KioskTvPage: React.FC = () => {
       </div>
 
       {/* Grid of Ovens Side-by-Side */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        {activeOvens.map(oven => {
+      {activeOvens.length === 0 ? (
+        <div className="bg-industrial-card/40 border border-dashed border-industrial-border rounded-3xl p-16 text-center space-y-3">
+          <div className="w-16 h-16 rounded-full bg-slate-800 text-industrial-textMuted flex items-center justify-center mx-auto text-2xl font-mono">
+            TV
+          </div>
+          <h3 className="text-xl font-bold text-white font-mono">NENHUM FORNO ATIVO NO PAINEL</h3>
+          <p className="text-xs text-industrial-textMuted max-w-md mx-auto">
+            Ative o Forno 1 ou Forno 2 na tela de controle para exibir seu monitoramento em tempo real nesta TV.
+          </p>
+        </div>
+      ) : (
+        <div className={`grid gap-6 ${
+          activeOvens.length === 1
+            ? 'grid-cols-1 max-w-3xl mx-auto'
+            : activeOvens.length === 2
+              ? 'grid-cols-1 md:grid-cols-2'
+              : 'grid-cols-1 md:grid-cols-3'
+        }`}>
+          {activeOvens.map(oven => {
           const ovenId = oven.id;
           const session = activeRoasts[ovenId];
           const isRoasting = session && session.status === 'roasting';
@@ -216,6 +233,7 @@ export const KioskTvPage: React.FC = () => {
           );
         })}
       </div>
+    )}
 
     </div>
   );

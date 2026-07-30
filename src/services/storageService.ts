@@ -14,7 +14,7 @@ export const INITIAL_USERS: User[] = [
   { id: 'op-1', name: 'João Silva', role: 'operator', shift: 'Turno A (Manhã)' },
   { id: 'op-2', name: 'Carlos Souza', role: 'operator', shift: 'Turno B (Tarde)' },
   { id: 'op-3', name: 'Mariana Oliveira', role: 'operator', shift: 'Turno C (Noite)' },
-  { id: 'admin-1', name: 'Eng. Roberto Mendes', role: 'admin', shift: 'Geral / Supervisão' },
+  { id: 'admin-1', name: 'Fábio (AmendoBento)', role: 'admin', shift: 'Geral / Supervisão' },
 ];
 
 export const DEFAULT_OPERATOR = INITIAL_USERS[0];
@@ -22,7 +22,7 @@ export const DEFAULT_ADMIN = INITIAL_USERS[3];
 
 export const INITIAL_OVENS: OvenConfig[] = [
   { id: 1, name: 'Forno 1', status: 'active', installedAt: '2025-01-15', notes: 'Linha Principal' },
-  { id: 2, name: 'Forno 2', status: 'active', installedAt: '2025-02-01', notes: 'Linha Secundária' },
+  { id: 2, name: 'Forno 2', status: 'inactive', installedAt: '2025-02-01', notes: 'Linha Secundária' },
   { id: 3, name: 'Forno 3', status: 'inactive', installedAt: 'Aguardando Chegada', notes: 'Novo forno encomendado (Ativar ao instalar)' },
 ];
 
@@ -194,7 +194,11 @@ export const storageService = {
     const data = localStorage.getItem(STORAGE_KEYS.CURRENT_USER);
     if (!data) return DEFAULT_OPERATOR;
     try {
-      return JSON.parse(data);
+      const user: User = JSON.parse(data);
+      if (user.id === 'admin-1' || (user.role === 'admin' && user.name.includes('Roberto'))) {
+        user.name = 'Fábio (AmendoBento)';
+      }
+      return user;
     } catch {
       return DEFAULT_OPERATOR;
     }

@@ -14,6 +14,7 @@ import { ImageGalleryPage } from './pages/ImageGalleryPage';
 import { AiPerformancePage } from './pages/AiPerformancePage';
 import { ModelEvolutionPage } from './pages/ModelEvolutionPage';
 import { OvenManagementPage } from './pages/OvenManagementPage';
+import { AlertsPage } from './pages/AlertsPage';
 import { OvenId } from './types/roast';
 
 export const AppContent: React.FC = () => {
@@ -41,7 +42,7 @@ export const AppContent: React.FC = () => {
       <Navbar activeTab={activeTab} setActiveTab={setActiveTab} />
 
       {/* Global SCADA Alert Banner */}
-      <AlertBanner />
+      <AlertBanner onOpenAlerts={() => setActiveTab('alerts')} />
 
       {/* Main Content Area */}
       <main className="flex-1 max-w-7xl w-full mx-auto px-4 py-6">
@@ -58,6 +59,10 @@ export const AppContent: React.FC = () => {
 
         {activeTab === 'kiosk' && (
           <KioskTvPage />
+        )}
+
+        {isAdmin && activeTab === 'alerts' && (
+          <AlertsPage onNavigateToOven={handleNavigateToRoast} />
         )}
 
         {isAdmin && activeTab === 'ovens-mgmt' && (
