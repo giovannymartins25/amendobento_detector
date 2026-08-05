@@ -8,7 +8,7 @@ import { RoastStageProgressBar } from '../components/roast/RoastStageProgressBar
 import { RoastTimeline } from '../components/roast/RoastTimeline';
 import { HumanFeedbackButtons } from '../components/aiFeedback/HumanFeedbackButtons';
 import { CameraCaptureModal } from '../components/roast/CameraCaptureModal';
-import { Camera, Upload, Square, User, Award, ArrowLeft, Loader2, Sparkles, AlertCircle } from 'lucide-react';
+import { Camera, Upload, Square, User, Award, ArrowLeft, Loader2, Sparkles, AlertCircle, Flame } from 'lucide-react';
 
 interface ActiveRoastPageProps {
   ovenId: OvenId;
@@ -72,7 +72,7 @@ export const ActiveRoastPage: React.FC<ActiveRoastPageProps> = ({ ovenId, onBack
     );
   }
 
-  const estimate = analyticsEngine.getPredictiveEstimate(ovenId, session.durationSeconds);
+  const estimate = analyticsEngine.getPredictiveEstimate(ovenId, session.durationSeconds, session.startTime);
 
   const handleProcessImage = async (base64Image: string) => {
     setIsAnalyzing(true);
@@ -173,13 +173,28 @@ export const ActiveRoastPage: React.FC<ActiveRoastPageProps> = ({ ovenId, onBack
         </div>
 
         {/* Predictive Assistant */}
-        <div className="bg-industrial-cardHover border border-industrial-borderActive p-3.5 rounded-2xl flex items-start gap-3">
-          <Sparkles className="w-5 h-5 text-industrial-accent flex-shrink-0 mt-0.5" />
+        <div className={`p-3.5 rounded-2xl flex items-start gap-3 border ${
+          estimate.isFirstRoastOfDay
+            ? 'bg-amber-950/20 border-amber-500/40'
+            : 'bg-industrial-cardHover border-industrial-borderActive'
+        }`}>
+          {estimate.isFirstRoastOfDay ? (
+            <Flame className="w-5 h-5 text-amber-400 flex-shrink-0 mt-0.5 animate-pulse" />
+          ) : (
+            <Sparkles className="w-5 h-5 text-industrial-accent flex-shrink-0 mt-0.5" />
+          )}
           <div className="text-xs">
-            <span className="font-bold text-white">Assistente de Produção Preditivo: </span>
+            <div className="flex items-center gap-2 mb-0.5">
+              <span className="font-bold text-white">Assistente Preditivo:</span>
+              {estimate.isFirstRoastOfDay && (
+                <span className="text-[10px] font-mono font-extrabold px-2 py-0.5 rounded bg-amber-500/20 text-amber-300 border border-amber-500/40">
+                  🔥 1ª TORRA DO DIA (+5 MIN EST.)
+                </span>
+              )}
+            </div>
             <span className="text-industrial-textSecondary">{estimate.message}</span>
             <div className="mt-1 flex items-center gap-3 text-[10px] font-mono text-industrial-textMuted">
-              <span>Média do Forno: ~{Math.floor(estimate.estimatedTotalDurationSeconds / 60)} min</span>
+              <span>Estimativa Total: ~{Math.floor(estimate.estimatedTotalDurationSeconds / 60)} min</span>
               <span>•</span>
               <span>Progresso Estimado: {estimate.progressPercentage}%</span>
             </div>

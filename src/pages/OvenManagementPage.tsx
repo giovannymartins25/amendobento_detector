@@ -29,7 +29,7 @@ export const OvenManagementPage: React.FC = () => {
             GERENCIAMENTO DA FROTA DE FORNOS
           </h2>
           <p className="text-xs sm:text-sm text-industrial-textSecondary mt-1">
-            Ative novos fornos quando instalados (ex: Forno 3) ou adicione equipamentos à linha de produção.
+            Cadastre novos fornos, remova ou retire equipamentos de circulação na fábrica. Tirar um forno de circulação aqui remove seu botão de ativação da aba Fornos.
           </p>
         </div>
       </div>
@@ -67,14 +67,14 @@ export const OvenManagementPage: React.FC = () => {
                 </div>
 
                 <div className="p-3 bg-industrial-bg rounded-2xl border border-industrial-border text-xs text-industrial-textSecondary">
-                  <span className="font-bold text-white block mb-0.5">Status operacional:</span>
+                  <span className="font-bold text-white block mb-0.5">Status da frota:</span>
                   {isActive ? (
                     <span className="text-emerald-400 flex items-center gap-1.5 font-bold">
-                      <CheckCircle2 className="w-4 h-4" /> Ativo & Disponível na Fábrica
+                      <CheckCircle2 className="w-4 h-4" /> Em Circulação na Fábrica
                     </span>
                   ) : (
                     <span className="text-amber-400 flex items-center gap-1.5 font-bold">
-                      <AlertTriangle className="w-4 h-4" /> Inativo / Aguardando Instalação
+                      <AlertTriangle className="w-4 h-4" /> Fora de Circulação / Manutenção
                     </span>
                   )}
                   {oven.notes && (
@@ -96,7 +96,7 @@ export const OvenManagementPage: React.FC = () => {
                   }`}
                 >
                   <Power className="w-4 h-4" />
-                  {isActive ? 'Desativar / Ocultar' : '🟢 Ativar (Forno Chegou)'}
+                  {isActive ? 'Tirar de Circulação' : '🟢 Colocar em Circulação'}
                 </button>
 
                 <button

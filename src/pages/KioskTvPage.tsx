@@ -3,14 +3,14 @@ import { useRoast } from '../contexts/RoastContext';
 import { analyticsEngine } from '../services/analyticsEngine';
 import { audioAlarmService } from '../services/audioAlarmService';
 import { formatSecondsToMMSS, formatDateTime, getStageBadgeStyles, getStageLabel } from '../utils/formatters';
-import { Tv, User, Award, Bell, BellOff, AlertTriangle } from 'lucide-react';
+import { Tv, User, Award, Bell, BellOff, AlertTriangle, Flame } from 'lucide-react';
 
 export const KioskTvPage: React.FC = () => {
   const { ovens, activeRoasts } = useRoast();
   const [now, setNow] = useState(new Date());
   const [isAudioMuted, setIsAudioMuted] = useState(audioAlarmService.getIsMuted());
 
-  const activeOvens = ovens.filter(o => o.status === 'active');
+  const activeOvens = ovens.filter(o => o.status === 'active' && (o.isVisibleOnBoard || activeRoasts[o.id]?.status === 'roasting'));
 
   useEffect(() => {
     const timer = setInterval(() => setNow(new Date()), 1000);
@@ -126,9 +126,8 @@ export const KioskTvPage: React.FC = () => {
           const session = activeRoasts[ovenId];
           const isRoasting = session && session.status === 'roasting';
 
-          const stats = analyticsEngine.getOvenStats(ovenId);
-          const avgDuration = stats.avgDurationSeconds || 600;
-          const isTimeNear = isRoasting && session.durationSeconds >= (avgDuration - 120);
+          const estimate = analyticsEngine.getPredictiveEstimate(ovenId, session?.durationSeconds || 0, session?.startTime);
+          const isTimeNear = isRoasting && session.durationSeconds >= (estimate.estimatedTotalDurationSeconds - 120);
 
           const lastAnalysis = session && session.analyses.length > 0
             ? session.analyses[session.analyses.length - 1]
@@ -201,10 +200,17 @@ export const KioskTvPage: React.FC = () => {
                   {isRoasting ? formatSecondsToMMSS(session.durationSeconds) : '00:00'}
                 </span>
 
+                {estimate.isFirstRoastOfDay && isRoasting && (
+                  <div className="mt-2 text-xs font-bold text-amber-300 flex items-center justify-center gap-1.5 font-mono animate-pulse">
+                    <Flame className="w-4 h-4 text-amber-400" />
+                    1ª TORRA DO DIA — FORNO FRIO (+5 MIN PRÉ-AQUECIMENTO)
+                  </div>
+                )}
+
                 {isNearCompletion && (
                   <div className="mt-2 text-xs font-bold text-amber-300 flex items-center justify-center gap-1.5 font-mono animate-pulse">
                     <AlertTriangle className="w-4 h-4" />
-                    ATENÇÃO: FALTA ~2 MINUTOS (MÉDIA DE TORRA)
+                    ATENÇÃO: FALTA ~2 MINUTOS (ESTIMATIVA AJUSTADA)
                   </div>
                 )}
               </div>

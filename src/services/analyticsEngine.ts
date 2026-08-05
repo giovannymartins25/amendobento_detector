@@ -8,9 +8,27 @@ export interface PredictiveEstimate {
   message: string;
   isOverAverage: boolean;
   deviationPercent: number;
+  isFirstRoastOfDay: boolean;
+  coldStartBonusSeconds: number;
 }
 
 export const analyticsEngine = {
+  isFirstRoastOfDay(ovenId: OvenId, sessionStartTime?: string): boolean {
+    const targetDateStr = sessionStartTime
+      ? new Date(sessionStartTime).toDateString()
+      : new Date().toDateString();
+
+    const completedSessions = storageService.getSessions().filter(s => s.status === 'completed');
+
+    const countToday = completedSessions.filter(s => {
+      if (s.ovenId !== ovenId) return false;
+      const dateStr = new Date(s.startTime).toDateString();
+      return dateStr === targetDateStr;
+    }).length;
+
+    return countToday === 0;
+  },
+
   getOvenStats(ovenId: OvenId): OvenStats {
     const allSessions = storageService.getSessions().filter(s => s.status === 'completed' && s.ovenId === ovenId);
     const globalSessions = storageService.getSessions().filter(s => s.status === 'completed');
@@ -62,9 +80,12 @@ export const analyticsEngine = {
     };
   },
 
-  getPredictiveEstimate(ovenId: OvenId, currentSeconds: number): PredictiveEstimate {
+  getPredictiveEstimate(ovenId: OvenId, currentSeconds: number, sessionStartTime?: string): PredictiveEstimate {
     const stats = this.getOvenStats(ovenId);
-    const expectedTotal = stats.avgDurationSeconds;
+    const firstRoast = this.isFirstRoastOfDay(ovenId, sessionStartTime);
+    const coldStartBonusSeconds = firstRoast ? 300 : 0; // +5 minutos (300s) devido a forno frio em temperatura ambiente
+
+    const expectedTotal = stats.avgDurationSeconds + coldStartBonusSeconds;
     const remainingSeconds = Math.max(0, expectedTotal - currentSeconds);
     const progressPercentage = Math.min(100, Math.round((currentSeconds / expectedTotal) * 100));
 
@@ -72,13 +93,24 @@ export const analyticsEngine = {
     const deviationPercent = Math.round(((currentSeconds - expectedTotal) / expectedTotal) * 100);
 
     let message = '';
-    if (isOverAverage) {
-      message = `⚠️ Torra ${deviationPercent}% acima da média habitual do Forno ${ovenId}.`;
-    } else if (remainingSeconds <= 120) {
-      message = `🟢 Ponto ideal aproximando-se! Estimativa de ~${Math.ceil(remainingSeconds / 60)} min restantes.`;
+    if (firstRoast) {
+      if (isOverAverage) {
+        message = `⚠️ 1ª Torra do dia no Forno ${ovenId} (Forno Frio). Ultrapassou a estimativa ajustada (+5 min de aquecimento).`;
+      } else if (remainingSeconds <= 120) {
+        message = `🟢 1ª Torra do dia (Forno Frio): Ponto ideal se aproximando (~${Math.ceil(remainingSeconds / 60)} min restantes).`;
+      } else {
+        const remainingMins = Math.ceil(remainingSeconds / 60);
+        message = `🔥 1ª Torra do dia no Forno ${ovenId} (Forno Frio: +5 min de aquecimento estimados). Faltam ~${remainingMins} min.`;
+      }
     } else {
-      const remainingMins = Math.ceil(remainingSeconds / 60);
-      message = `💡 Baseado nas últimas torras do Forno ${ovenId}, faltam aproximadamente ${remainingMins} minutos.`;
+      if (isOverAverage) {
+        message = `⚠️ Torra ${deviationPercent}% acima da média habitual do Forno ${ovenId}.`;
+      } else if (remainingSeconds <= 120) {
+        message = `🟢 Ponto ideal aproximando-se! Estimativa de ~${Math.ceil(remainingSeconds / 60)} min restantes.`;
+      } else {
+        const remainingMins = Math.ceil(remainingSeconds / 60);
+        message = `💡 Baseado nas últimas torras do Forno ${ovenId}, faltam aproximadamente ${remainingMins} minutos.`;
+      }
     }
 
     return {
@@ -88,6 +120,8 @@ export const analyticsEngine = {
       message,
       isOverAverage,
       deviationPercent,
+      isFirstRoastOfDay: firstRoast,
+      coldStartBonusSeconds,
     };
   },
 

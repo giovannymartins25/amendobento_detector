@@ -3,7 +3,8 @@ export type OvenId = number;
 export interface OvenConfig {
   id: OvenId;
   name: string;
-  status: 'active' | 'inactive';
+  status: 'active' | 'inactive'; // Status no sistema / em circulação na fábrica (Gerenciar Fornos)
+  isVisibleOnBoard?: boolean;    // Exibido/Ativo no painel de operação e TV (Aba Fornos)
   installedAt?: string;
   notes?: string;
 }

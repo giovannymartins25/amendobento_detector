@@ -21,9 +21,9 @@ export const DEFAULT_OPERATOR = INITIAL_USERS[0];
 export const DEFAULT_ADMIN = INITIAL_USERS[3];
 
 export const INITIAL_OVENS: OvenConfig[] = [
-  { id: 1, name: 'Forno 1', status: 'active', installedAt: '2025-01-15', notes: 'Linha Principal' },
-  { id: 2, name: 'Forno 2', status: 'inactive', installedAt: '2025-02-01', notes: 'Linha Secundária' },
-  { id: 3, name: 'Forno 3', status: 'inactive', installedAt: 'Aguardando Chegada', notes: 'Novo forno encomendado (Ativar ao instalar)' },
+  { id: 1, name: 'Forno 1', status: 'active', isVisibleOnBoard: false, installedAt: '2025-01-15', notes: 'Linha Principal' },
+  { id: 2, name: 'Forno 2', status: 'active', isVisibleOnBoard: false, installedAt: '2025-02-01', notes: 'Linha Secundária' },
+  { id: 3, name: 'Forno 3', status: 'active', isVisibleOnBoard: false, installedAt: '2025-03-01', notes: 'Linha 3' },
 ];
 
 // Initial mock dataset for industrial calculations & charts

@@ -17,6 +17,7 @@ interface RoastContextType {
   refreshHistoricalData: () => void;
   addOven: (name: string, notes?: string) => void;
   toggleOvenStatus: (ovenId: OvenId) => void;
+  toggleOvenVisibilityOnBoard: (ovenId: OvenId) => void;
   deleteOven: (ovenId: OvenId) => void;
 }
 
@@ -161,6 +162,18 @@ export const RoastProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     }));
   }, []);
 
+  const toggleOvenVisibilityOnBoard = useCallback((ovenId: OvenId) => {
+    setOvens(prev => prev.map(o => {
+      if (o.id === ovenId) {
+        return {
+          ...o,
+          isVisibleOnBoard: !o.isVisibleOnBoard,
+        };
+      }
+      return o;
+    }));
+  }, []);
+
   const deleteOven = useCallback((ovenId: OvenId) => {
     if (window.confirm(`Tem certeza que deseja remover o Forno ${ovenId}?`)) {
       setOvens(prev => prev.filter(o => o.id !== ovenId));
@@ -179,9 +192,36 @@ export const RoastProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     targetQuantityKg?: number;
     notes?: string;
   }) => {
+    // Garantir que o forno fique visível no painel/TV ao iniciar torra
+    setOvens(prev => prev.map(o => o.id === ovenId ? { ...o, isVisibleOnBoard: true } : o));
+
     const oven = ovens.find(o => o.id === ovenId);
     const ovenName = oven ? oven.name : `Forno ${ovenId}`;
     const nowISO = new Date().toISOString();
+    const isFirstRoastToday = analyticsEngine.isFirstRoastOfDay(ovenId, nowISO);
+
+    const timelineEvents: any[] = [
+      {
+        id: `tl-start-${Date.now()}`,
+        timestamp: nowISO,
+        type: 'started',
+        title: '🚀 Torra Iniciada',
+        description: `Torra iniciada por ${operatorName} no ${ovenName}`,
+        severity: 'info',
+      }
+    ];
+
+    if (isFirstRoastToday) {
+      timelineEvents.push({
+        id: `tl-cold-${Date.now()}`,
+        timestamp: nowISO,
+        type: 'note',
+        title: '🔥 1ª Torra do Dia (Forno Frio)',
+        description: 'Forno em temperatura ambiente. Adicionado +5 min estimados no tempo ideal para aquecimento inicial.',
+        severity: 'warning',
+      });
+    }
+
     const newSession: RoastSession = {
       id: `roast-${ovenId}-${Date.now()}`,
       ovenId,
@@ -193,16 +233,7 @@ export const RoastProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       targetQuantityKg,
       notes,
       analyses: [],
-      timeline: [
-        {
-          id: `tl-start-${Date.now()}`,
-          timestamp: nowISO,
-          type: 'started',
-          title: '🚀 Torra Iniciada',
-          description: `Torra iniciada por ${operatorName} no ${ovenName}`,
-          severity: 'info',
-        }
-      ]
+      timeline: timelineEvents,
     };
 
     setActiveRoasts(prev => ({
@@ -382,6 +413,7 @@ export const RoastProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       refreshHistoricalData,
       addOven,
       toggleOvenStatus,
+      toggleOvenVisibilityOnBoard,
       deleteOven,
     }}>
       {children}

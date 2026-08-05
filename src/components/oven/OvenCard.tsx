@@ -2,7 +2,7 @@ import React from 'react';
 import { OvenId, RoastSession } from '../../types/roast';
 import { analyticsEngine } from '../../services/analyticsEngine';
 import { formatSecondsToMMSS, getStageBadgeStyles, getStageLabel } from '../../utils/formatters';
-import { Play, Eye, AlertCircle, Clock, User, Award } from 'lucide-react';
+import { Play, Eye, AlertCircle, Clock, User, Award, Flame } from 'lucide-react';
 
 interface OvenCardProps {
   ovenId: OvenId;
@@ -19,6 +19,7 @@ export const OvenCard: React.FC<OvenCardProps> = ({
 }) => {
   const stats = analyticsEngine.getOvenStats(ovenId);
   const isRoasting = session && session.status === 'roasting';
+  const isFirstRoastToday = analyticsEngine.isFirstRoastOfDay(ovenId, session?.startTime);
 
   const lastAnalysis = session && session.analyses.length > 0
     ? session.analyses[session.analyses.length - 1]
@@ -51,7 +52,7 @@ export const OvenCard: React.FC<OvenCardProps> = ({
               )}
             </h3>
             <p className="text-xs text-industrial-textMuted">
-              {stats.totalRoasts} torras realizadas • Média ~{Math.floor(stats.avgDurationSeconds / 60)}m
+              {stats.totalRoasts} torras realizadas • Média ~{Math.floor((stats.avgDurationSeconds + (isFirstRoastToday ? 300 : 0)) / 60)}m
             </p>
           </div>
         </div>
@@ -71,6 +72,17 @@ export const OvenCard: React.FC<OvenCardProps> = ({
           )}
         </div>
       </div>
+
+      {/* 1st Roast of the day indicator */}
+      {isFirstRoastToday && (
+        <div className="mb-3 px-3 py-1.5 rounded-xl bg-amber-500/15 border border-amber-500/30 text-amber-300 text-xs font-bold font-mono flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <Flame className="w-4 h-4 text-amber-400 animate-pulse" />
+            <span>1ª Torra do dia (Forno Frio)</span>
+          </div>
+          <span className="text-[10px] bg-amber-500/20 px-2 py-0.5 rounded text-amber-200">+5 min est.</span>
+        </div>
+      )}
 
       {/* Center Display: Timer & Active Operator */}
       <div className="space-y-4 mb-5">
