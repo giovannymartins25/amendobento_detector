@@ -3,8 +3,13 @@ import { storageService } from '../services/storageService';
 import { AnalysisResult } from '../types/roast';
 import { formatDateTime, getStageBadgeStyles, getStageLabel, formatSecondsToReadable } from '../utils/formatters';
 import { Image as ImageIcon, Clock, User, CheckCircle2, AlertTriangle } from 'lucide-react';
+import { AnalyticsSubNav } from '../components/common/AnalyticsSubNav';
 
-export const ImageGalleryPage: React.FC = () => {
+interface ImageGalleryPageProps {
+  onTabChange?: (tab: string) => void;
+}
+
+export const ImageGalleryPage: React.FC<ImageGalleryPageProps> = ({ onTabChange }) => {
   const sessions = storageService.getSessions();
   const allAnalyses: AnalysisResult[] = [];
 
@@ -26,6 +31,9 @@ export const ImageGalleryPage: React.FC = () => {
   return (
     <div className="space-y-6 pb-20">
       
+      {/* SubNav for quick switching */}
+      {onTabChange && <AnalyticsSubNav activeTab="gallery" setActiveTab={onTabChange} />}
+
       {/* Header */}
       <div className="bg-industrial-card border border-industrial-border rounded-3xl p-6 shadow-scada bg-gradient-to-r from-industrial-card via-industrial-card to-purple-950/30">
         <div className="flex items-center gap-3">

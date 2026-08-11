@@ -3,6 +3,7 @@ import { useRoast } from '../contexts/RoastContext';
 import { PredictiveAlert } from '../types/roast';
 import { formatDateTime } from '../utils/formatters';
 import { Bell, AlertTriangle, CheckCircle2, Info, Trash2, Check, Filter } from 'lucide-react';
+import { ConfirmModal } from '../components/common/ConfirmModal';
 
 interface AlertsPageProps {
   onNavigateToOven?: (ovenId: number) => void;
@@ -11,6 +12,7 @@ interface AlertsPageProps {
 export const AlertsPage: React.FC<AlertsPageProps> = ({ onNavigateToOven }) => {
   const { alerts, dismissAlert, ovens } = useRoast();
   const [filterSeverity, setFilterSeverity] = useState<string>('all');
+  const [isConfirmClearOpen, setIsConfirmClearOpen] = useState(false);
 
   const filteredAlerts = alerts.filter(alert => {
     if (filterSeverity === 'all') return true;
@@ -46,11 +48,9 @@ export const AlertsPage: React.FC<AlertsPageProps> = ({ onNavigateToOven }) => {
     }
   };
 
-  const clearAllAlerts = () => {
-    if (alerts.length === 0) return;
-    if (window.confirm('Deseja limpar todos os avisos da lista?')) {
-      alerts.forEach(a => dismissAlert(a.id));
-    }
+  const handleConfirmClearAll = () => {
+    alerts.forEach(a => dismissAlert(a.id));
+    setIsConfirmClearOpen(false);
   };
 
   return (
@@ -78,7 +78,7 @@ export const AlertsPage: React.FC<AlertsPageProps> = ({ onNavigateToOven }) => {
 
         {alerts.length > 0 && (
           <button
-            onClick={clearAllAlerts}
+            onClick={() => setIsConfirmClearOpen(true)}
             className="px-4 py-2.5 bg-rose-950/60 hover:bg-rose-900 border border-rose-600/50 text-rose-300 text-xs font-bold rounded-xl flex items-center gap-2 transition-all shadow-sm"
           >
             <Trash2 className="w-4 h-4" />
@@ -210,6 +210,19 @@ export const AlertsPage: React.FC<AlertsPageProps> = ({ onNavigateToOven }) => {
           })}
         </div>
       )}
+
+      {/* Confirmation Modal for Clearing All Alerts */}
+      <ConfirmModal
+        isOpen={isConfirmClearOpen}
+        title="Limpar Todos os Avisos"
+        message="Deseja realmente remover todos os avisos da lista? Os alertas não serão mais visíveis nesta tela."
+        variant="warning"
+        confirmText="Limpar Todos"
+        cancelText="Cancelar"
+        onConfirm={handleConfirmClearAll}
+        onCancel={() => setIsConfirmClearOpen(false)}
+      />
+
     </div>
   );
 };

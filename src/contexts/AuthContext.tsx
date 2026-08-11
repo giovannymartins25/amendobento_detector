@@ -5,7 +5,7 @@ import { storageService, INITIAL_USERS } from '../services/storageService';
 interface AuthContextType {
   currentUser: User;
   users: User[];
-  loginAs: (userId: string) => void;
+  loginAs: (userId: string, password?: string) => boolean;
   logout: () => void;
   isAdmin: boolean;
   isAuthenticated: boolean;
@@ -25,12 +25,34 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     storageService.saveIsLoggedIn(isAuthenticated);
   }, [isAuthenticated]);
 
-  const loginAs = (userId: string) => {
-    const found = INITIAL_USERS.find(u => u.id === userId);
+  const loginAs = (userIdentifier: string, password?: string): boolean => {
+    // Standard password required is "123"
+    if (password !== undefined && password !== '123') {
+      return false;
+    }
+
+    const cleanInput = userIdentifier.trim().toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+    if (!cleanInput) return false;
+
+    const found = INITIAL_USERS.find(u => {
+      const cleanName = u.name.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+      const cleanId = u.id.toLowerCase();
+      
+      if (cleanInput === 'fabio' || cleanInput === 'admin' || cleanInput === 'fabio adm') {
+        return u.role === 'admin';
+      }
+      if (cleanInput === 'joao' || cleanInput === 'joao silva') {
+        return u.id === 'op-1';
+      }
+      return cleanName.includes(cleanInput) || cleanId === cleanInput || u.id === userIdentifier;
+    });
+
     if (found) {
       setCurrentUser(found);
       setIsAuthenticated(true);
+      return true;
     }
+    return false;
   };
 
   const logout = () => {

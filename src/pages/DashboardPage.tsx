@@ -4,24 +4,35 @@ import { useAuth } from '../contexts/AuthContext';
 import { OvenId } from '../types/roast';
 import { OvenCard } from '../components/oven/OvenCard';
 import { NewRoastModal } from '../components/oven/NewRoastModal';
+import { SelectOvenModal } from '../components/oven/SelectOvenModal';
 import { analyticsEngine } from '../services/analyticsEngine';
-import { Award, Zap, Flame, Settings, Power } from 'lucide-react';
+import { Flame, ChevronDown, ChevronUp, BarChart2, Award, Play } from 'lucide-react';
 
 interface DashboardPageProps {
   onNavigateToRoast: (ovenId: OvenId) => void;
-  onNavigateToOvenMgmt?: () => void;
 }
 
-export const DashboardPage: React.FC<DashboardPageProps> = ({ onNavigateToRoast, onNavigateToOvenMgmt }) => {
-  const { ovens, activeRoasts, toggleOvenVisibilityOnBoard } = useRoast();
+export const DashboardPage: React.FC<DashboardPageProps> = ({ onNavigateToRoast }) => {
+  const { ovens, activeRoasts } = useRoast();
   const { isAdmin } = useAuth();
-  const [selectedOvenForNewRoast, setSelectedOvenForNewRoast] = useState<OvenId | null>(null);
 
+  const [isSelectModalOpen, setIsSelectModalOpen] = useState(false);
+  const [selectedOvenForNewRoast, setSelectedOvenForNewRoast] = useState<OvenId | null>(null);
+  const [showStats, setShowStats] = useState(false);
+
+  // Ovens active in circulation (configured in Gerenciar Fornos)
   const circulatingOvens = ovens.filter(o => o.status === 'active');
-  const visibleOvens = circulatingOvens.filter(o => o.isVisibleOnBoard || activeRoasts[o.id]?.status === 'roasting');
+  const roastingOvens = circulatingOvens.filter(o => activeRoasts[o.id]?.status === 'roasting');
+  const idleOvens = circulatingOvens.filter(o => activeRoasts[o.id]?.status !== 'roasting');
+
   const kpis = analyticsEngine.getGlobalKpis();
 
-  const handleStartRoast = (ovenId: OvenId) => {
+  const handleStartRoastForOven = (ovenId: OvenId) => {
+    setSelectedOvenForNewRoast(ovenId);
+  };
+
+  const handleSelectOvenFromModal = (ovenId: OvenId) => {
+    setIsSelectModalOpen(false);
     setSelectedOvenForNewRoast(ovenId);
   };
 
@@ -30,156 +41,140 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({ onNavigateToRoast,
   };
 
   return (
-    <div className="space-y-6 pb-32">
+    <div className="space-y-6 pb-24 max-w-6xl mx-auto">
       
-      {/* Top Banner SCADA Overview */}
-      <div className="bg-industrial-card border border-industrial-border rounded-3xl p-6 shadow-scada bg-gradient-to-r from-industrial-card via-industrial-card to-industrial-accent/10">
-        <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
-          <div>
-            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-industrial-accent/20 border border-industrial-accent/40 text-industrial-accent text-xs font-bold uppercase tracking-wider mb-2">
-              <Zap className="w-3.5 h-3.5" />
-              Painel de Operação Fabril
-            </div>
-            <h2 className="text-2xl sm:text-3xl font-extrabold text-white font-mono tracking-tight">
-              CONTROLE DOS FORNOS DE TORRA
-            </h2>
-            <p className="text-xs sm:text-sm text-industrial-textSecondary mt-1">
-              Selecione um forno ativado para iniciar a torra ou acompanhe a classificação em tempo real.
-            </p>
-          </div>
+      {/* Top Header + Main Start Roast Button */}
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 border-b border-industrial-border/60 pb-4">
+        <div>
+          <h2 className="text-2xl font-black text-white font-mono tracking-tight flex items-center gap-2">
+            <Flame className="w-6 h-6 text-industrial-accent" />
+            FORNOS DE TORRA
+          </h2>
+          <p className="text-xs text-industrial-textMuted mt-0.5">
+            {roastingOvens.length > 0
+              ? `${roastingOvens.length} torra(s) em andamento no momento`
+              : 'Nenhuma torra em andamento. Clique em Iniciar Torra para escolher um forno.'}
+          </p>
+        </div>
 
-          {/* Quick Stats Grid */}
-          <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 w-full md:w-auto">
-            <div className="bg-industrial-bg border border-industrial-border p-3 rounded-2xl text-center">
-              <span className="text-[10px] font-bold text-industrial-textMuted uppercase tracking-wider block">Torras Hoje</span>
-              <span className="font-mono text-xl font-extrabold text-white">{kpis.totalRoasts}</span>
-            </div>
-            <div className="bg-industrial-bg border border-industrial-border p-3 rounded-2xl text-center">
-              <span className="text-[10px] font-bold text-industrial-textMuted uppercase tracking-wider block">Tempo Médio</span>
-              <span className="font-mono text-xl font-extrabold text-emerald-400">~{Math.floor(kpis.avgDurationSeconds / 60)} min</span>
-            </div>
-            <div className="bg-industrial-bg border border-industrial-border p-3 rounded-2xl text-center col-span-2 sm:col-span-1">
-              <span className="text-[10px] font-bold text-industrial-textMuted uppercase tracking-wider block">Fornos no Painel</span>
-              <span className="font-mono text-xl font-extrabold text-industrial-accent">
-                {visibleOvens.length} de {circulatingOvens.length}
-              </span>
-            </div>
-          </div>
+        <div className="flex items-center gap-3 w-full sm:w-auto">
+          {/* Primary Action Button: Iniciar Torra */}
+          {idleOvens.length > 0 && (
+            <button
+              onClick={() => setIsSelectModalOpen(true)}
+              className="flex-1 sm:flex-none px-6 py-3.5 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white font-extrabold text-sm rounded-2xl shadow-success-glow flex items-center justify-center gap-2.5 uppercase tracking-wider active:scale-98 transition-all shrink-0"
+            >
+              <Play className="w-5 h-5 fill-current" />
+              <span>{roastingOvens.length > 0 ? '+ Iniciar Outra Torra' : '▶ Iniciar Torra'}</span>
+            </button>
+          )}
+
+          {/* Admin Optional Toggle Button for Extra Info */}
+          {isAdmin && (
+            <button
+              onClick={() => setShowStats(!showStats)}
+              className="px-3.5 py-3.5 bg-industrial-card hover:bg-industrial-cardHover border border-industrial-border text-industrial-textSecondary hover:text-white text-xs font-bold rounded-2xl flex items-center gap-2 transition-all shrink-0"
+            >
+              <BarChart2 className="w-4 h-4 text-industrial-accent" />
+              <span>{showStats ? 'Ocultar Resumo' : 'Resumo'}</span>
+              {showStats ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
+            </button>
+          )}
         </div>
       </div>
 
-      {/* Selection Control Bar for Ovens in Circulation */}
-      {circulatingOvens.length > 0 && (
-        <div className="bg-industrial-card border border-industrial-border rounded-2xl p-4 shadow-scada flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
-          <div className="flex items-center gap-2">
-            <Power className="w-5 h-5 text-industrial-accent" />
-            <div>
-              <h3 className="text-xs font-mono font-extrabold text-white uppercase tracking-wider">
-                SELEÇÃO DE FORNOS PARA OPERAÇÃO & PAINEL TV
-              </h3>
-              <p className="text-[11px] text-industrial-textMuted">
-                Clique no forno desejado para exibi-lo no painel e liberá-lo para a torra
-              </p>
+      {/* Admin Optional Collapsible Stats Panel */}
+      {isAdmin && showStats && (
+        <div className="bg-industrial-card border border-industrial-border rounded-3xl p-5 shadow-2xl space-y-4 animate-scale-up">
+          <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+            <div className="bg-industrial-bg border border-industrial-border p-3.5 rounded-2xl text-center">
+              <span className="text-[10px] font-bold text-industrial-textMuted uppercase tracking-wider block">Torras Hoje</span>
+              <span className="font-mono text-2xl font-black text-white">{kpis.totalRoasts}</span>
+            </div>
+            <div className="bg-industrial-bg border border-industrial-border p-3.5 rounded-2xl text-center">
+              <span className="text-[10px] font-bold text-industrial-textMuted uppercase tracking-wider block">Tempo Médio</span>
+              <span className="font-mono text-2xl font-black text-emerald-400">~{Math.floor(kpis.avgDurationSeconds / 60)} min</span>
+            </div>
+            <div className="bg-industrial-bg border border-industrial-border p-3.5 rounded-2xl text-center col-span-2 sm:col-span-1">
+              <span className="text-[10px] font-bold text-industrial-textMuted uppercase tracking-wider block">Fornos em Torra</span>
+              <span className="font-mono text-2xl font-black text-industrial-accent">
+                {roastingOvens.length} / {circulatingOvens.length}
+              </span>
             </div>
           </div>
 
-          <div className="flex flex-wrap items-center gap-2 w-full sm:w-auto">
-            {circulatingOvens.map(oven => {
-              const isVisible = oven.isVisibleOnBoard || activeRoasts[oven.id]?.status === 'roasting';
-              return (
-                <button
-                  key={oven.id}
-                  onClick={() => toggleOvenVisibilityOnBoard(oven.id)}
-                  className={`px-4 py-2 rounded-xl text-xs font-mono font-bold flex items-center gap-2 transition-all active:scale-95 ${
-                    isVisible
-                      ? 'bg-emerald-500/20 border border-emerald-500/50 text-emerald-300 shadow-success-glow hover:bg-emerald-500/30'
-                      : 'bg-industrial-bg border border-industrial-border text-industrial-textMuted hover:text-white hover:border-slate-500'
-                  }`}
-                  title={isVisible ? `Ocultar ${oven.name} do painel` : `Exibir/Ativar ${oven.name} no painel`}
-                >
-                  <span className={`w-2.5 h-2.5 rounded-full ${isVisible ? 'bg-emerald-400 animate-ping' : 'bg-slate-600'}`} />
-                  <span>{oven.name}</span>
-                  <span className="text-[10px] opacity-75 font-sans uppercase">
-                    {isVisible ? '(Ativo no Painel)' : '+ Ativar'}
-                  </span>
-                </button>
-              );
-            })}
+          <div className="bg-industrial-bg/60 p-3 rounded-2xl border border-industrial-border text-xs text-industrial-textSecondary flex items-center gap-3">
+            <Award className="w-5 h-5 text-purple-400 shrink-0" />
+            <span>
+              <strong className="text-emerald-400">Forno 1</strong> lidera a eficiência semanal. <strong className="text-rose-400">Forno 2</strong> exige verificação de tempo.
+            </span>
           </div>
         </div>
       )}
 
-      {/* Main Grid: Active/Visible Ovens */}
+      {/* Content Area */}
       {circulatingOvens.length === 0 ? (
-        <div className="bg-industrial-card/40 border border-dashed border-industrial-border rounded-3xl p-12 text-center space-y-4">
-          <div className="w-16 h-16 rounded-full bg-amber-500/10 border border-amber-500/30 text-amber-400 flex items-center justify-center mx-auto">
-            <Flame className="w-8 h-8" />
+        <div className="bg-industrial-card/40 border border-dashed border-industrial-border rounded-3xl p-12 text-center space-y-3">
+          <div className="w-14 h-14 rounded-full bg-amber-500/10 border border-amber-500/30 text-amber-400 flex items-center justify-center mx-auto">
+            <Flame className="w-7 h-7" />
           </div>
-          <h3 className="text-lg font-bold text-white font-mono">Nenhum forno em circulação na fábrica</h3>
-          <p className="text-xs text-industrial-textMuted max-w-md mx-auto">
-            Acesse a aba &quot;Gerenciar Fornos&quot; para colocar fornos em circulação na fábrica.
+          <h3 className="text-base font-bold text-white font-mono">Nenhum forno em circulação no momento</h3>
+          <p className="text-xs text-industrial-textMuted max-w-sm mx-auto">
+            Acesse a página "Gerenciar Fornos" para colocar equipamentos em circulação.
           </p>
-          {isAdmin && onNavigateToOvenMgmt && (
-            <div className="pt-2 flex justify-center">
-              <button
-                onClick={onNavigateToOvenMgmt}
-                className="px-4 py-2 bg-industrial-accent hover:bg-blue-600 text-white font-bold text-xs rounded-xl shadow-scada-glow transition-all flex items-center gap-2 uppercase tracking-wider"
-              >
-                <Settings className="w-4 h-4" />
-                Ir para Gerenciar Fornos
-              </button>
-            </div>
-          )}
         </div>
-      ) : visibleOvens.length === 0 ? (
-        <div className="bg-industrial-card/40 border border-dashed border-industrial-border rounded-3xl p-12 text-center space-y-4">
-          <div className="w-16 h-16 rounded-full bg-amber-500/10 border border-amber-500/30 text-amber-400 flex items-center justify-center mx-auto">
-            <Flame className="w-8 h-8" />
+      ) : roastingOvens.length === 0 ? (
+        /* Empty State: No roasts running, big call to action */
+        <div className="bg-industrial-card border border-industrial-border rounded-3xl p-10 text-center space-y-5 shadow-2xl">
+          <div className="w-20 h-20 rounded-3xl bg-gradient-to-br from-emerald-600 to-teal-700 mx-auto flex items-center justify-center shadow-success-glow">
+            <Flame className="w-10 h-10 text-white animate-pulse" />
           </div>
-          <h3 className="text-lg font-bold text-white font-mono">Nenhum forno ativado no painel no momento</h3>
-          <p className="text-xs text-industrial-textMuted max-w-md mx-auto">
-            Clique no botão do forno desejado na barra acima para ativá-lo no painel de operação e na TV.
-          </p>
-          <div className="pt-2 flex flex-wrap justify-center gap-2">
-            {circulatingOvens.map(o => (
-              <button
-                key={o.id}
-                onClick={() => toggleOvenVisibilityOnBoard(o.id)}
-                className="px-4 py-2 bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs rounded-xl shadow-success-glow transition-all flex items-center gap-1.5"
-              >
-                🟢 Exibir {o.name} no Painel
-              </button>
+          <div className="space-y-1 max-w-md mx-auto">
+            <h3 className="text-xl font-extrabold text-white font-mono">NENHUMA TORRA EM ANDAMENTO</h3>
+            <p className="text-xs text-industrial-textMuted">
+              Selecione um forno para iniciar a torra de amendoim. O monitoramento será exibido automaticamente no Painel TV.
+            </p>
+          </div>
+
+          <button
+            onClick={() => setIsSelectModalOpen(true)}
+            className="px-8 py-4 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white font-black text-base rounded-2xl shadow-success-glow inline-flex items-center gap-3 uppercase tracking-wider active:scale-98 transition-all"
+          >
+            <Play className="w-6 h-6 fill-current" />
+            ▶ INICIAR TORRA AGORA
+          </button>
+        </div>
+      ) : (
+        /* Active Roasts Display */
+        <div className="space-y-6">
+          <div className="flex items-center justify-between">
+            <h3 className="text-xs font-mono font-extrabold text-emerald-400 uppercase tracking-wider flex items-center gap-2">
+              <span className="w-2.5 h-2.5 rounded-full bg-emerald-400 animate-ping" />
+              TORRAS EM ANDAMENTO ({roastingOvens.length})
+            </h3>
+          </div>
+
+          <div className={`grid gap-6 ${roastingOvens.length === 1 ? 'grid-cols-1 max-w-xl mx-auto' : 'grid-cols-1 md:grid-cols-2 lg:grid-cols-3'}`}>
+            {roastingOvens.map(oven => (
+              <OvenCard
+                key={oven.id}
+                ovenId={oven.id}
+                session={activeRoasts[oven.id]}
+                onStartRoast={handleStartRoastForOven}
+                onViewRoast={onNavigateToRoast}
+              />
             ))}
           </div>
         </div>
-      ) : (
-        <div className={`grid gap-6 ${visibleOvens.length === 1 ? 'grid-cols-1 max-w-2xl mx-auto' : 'grid-cols-1 md:grid-cols-2 lg:grid-cols-3'}`}>
-          {visibleOvens.map(oven => (
-            <OvenCard
-              key={oven.id}
-              ovenId={oven.id}
-              session={activeRoasts[oven.id]}
-              onStartRoast={handleStartRoast}
-              onViewRoast={onNavigateToRoast}
-            />
-          ))}
-        </div>
       )}
 
-      {/* Assistant Recommendation Box */}
-      {isAdmin && (
-        <div className="bg-industrial-card border border-industrial-border rounded-2xl p-5 shadow-scada flex items-start gap-4">
-          <div className="w-10 h-10 rounded-xl bg-purple-500/20 border border-purple-500/40 text-purple-400 flex items-center justify-center flex-shrink-0 mt-0.5">
-            <Award className="w-5 h-5" />
-          </div>
-          <div>
-            <h4 className="font-extrabold text-sm text-white font-mono">RECOMENDAÇÃO DO ASSISTENTE DE PRODUÇÃO</h4>
-            <p className="text-xs text-industrial-textSecondary mt-1 leading-relaxed">
-              O <strong className="text-emerald-400">Forno 1</strong> apresentou a maior eficiência da semana (média de 9 min 50s por lote). O <strong className="text-rose-400">Forno 2</strong> necessita de inspeção por desvio de tempo habitual.
-            </p>
-          </div>
-        </div>
-      )}
+      {/* Select Oven Modal */}
+      <SelectOvenModal
+        isOpen={isSelectModalOpen}
+        availableOvens={idleOvens}
+        onClose={() => setIsSelectModalOpen(false)}
+        onSelectOven={handleSelectOvenFromModal}
+      />
 
       {/* Modal for Starting New Roast */}
       <NewRoastModal

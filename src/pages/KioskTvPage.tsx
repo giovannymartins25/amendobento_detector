@@ -105,12 +105,12 @@ export const KioskTvPage: React.FC = () => {
       {/* Grid of Ovens Side-by-Side */}
       {activeOvens.length === 0 ? (
         <div className="bg-industrial-card/40 border border-dashed border-industrial-border rounded-3xl p-16 text-center space-y-3">
-          <div className="w-16 h-16 rounded-full bg-slate-800 text-industrial-textMuted flex items-center justify-center mx-auto text-2xl font-mono">
-            TV
+          <div className="w-16 h-16 rounded-full bg-industrial-card border border-industrial-border text-emerald-400 flex items-center justify-center mx-auto shadow-scada">
+            <Tv className="w-8 h-8" />
           </div>
-          <h3 className="text-xl font-bold text-white font-mono">NENHUM FORNO ATIVO NO PAINEL</h3>
+          <h3 className="text-xl font-bold text-white font-mono">NENHUMA TORRA EM ANDAMENTO NO MOMENTO</h3>
           <p className="text-xs text-industrial-textMuted max-w-md mx-auto">
-            Ative o Forno 1 ou Forno 2 na tela de controle para exibir seu monitoramento em tempo real nesta TV.
+            Assim que você iniciar a torra em qualquer forno no painel de controle, o monitoramento em tempo real aparecerá automaticamente nesta tela TV.
           </p>
         </div>
       ) : (

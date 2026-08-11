@@ -3,7 +3,13 @@ import { analyticsEngine } from '../services/analyticsEngine';
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell } from 'recharts';
 import { BarChart3, Award, AlertTriangle, Users, Flame, Clock } from 'lucide-react';
 
-export const AdminDashboardPage: React.FC = () => {
+import { AnalyticsSubNav } from '../components/common/AnalyticsSubNav';
+
+interface AdminDashboardPageProps {
+  onTabChange?: (tab: string) => void;
+}
+
+export const AdminDashboardPage: React.FC<AdminDashboardPageProps> = ({ onTabChange }) => {
   const kpis = analyticsEngine.getGlobalKpis();
 
   const ovenChartData = kpis.ovenStats.map(stat => ({
@@ -23,6 +29,9 @@ export const AdminDashboardPage: React.FC = () => {
 
   return (
     <div className="space-y-6 pb-20">
+      
+      {/* SubNav for quick switching */}
+      {onTabChange && <AnalyticsSubNav activeTab="admin" setActiveTab={onTabChange} />}
       
       {/* Top Banner */}
       <div className="bg-industrial-card border border-industrial-border rounded-3xl p-6 shadow-scada bg-gradient-to-r from-industrial-card via-industrial-card to-blue-950/30">

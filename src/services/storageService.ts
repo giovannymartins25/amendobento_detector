@@ -14,7 +14,7 @@ export const INITIAL_USERS: User[] = [
   { id: 'op-1', name: 'João Silva', role: 'operator', shift: 'Turno A (Manhã)' },
   { id: 'op-2', name: 'Carlos Souza', role: 'operator', shift: 'Turno B (Tarde)' },
   { id: 'op-3', name: 'Mariana Oliveira', role: 'operator', shift: 'Turno C (Noite)' },
-  { id: 'admin-1', name: 'Fábio (AmendoBento)', role: 'admin', shift: 'Geral / Supervisão' },
+  { id: 'admin-1', name: 'Fábio ADM', role: 'admin', shift: 'Geral / Supervisão' },
 ];
 
 export const DEFAULT_OPERATOR = INITIAL_USERS[0];
@@ -195,8 +195,8 @@ export const storageService = {
     if (!data) return DEFAULT_OPERATOR;
     try {
       const user: User = JSON.parse(data);
-      if (user.id === 'admin-1' || (user.role === 'admin' && user.name.includes('Roberto'))) {
-        user.name = 'Fábio (AmendoBento)';
+      if (user.id === 'admin-1' || user.role === 'admin') {
+        user.name = 'Fábio ADM';
       }
       return user;
     } catch {

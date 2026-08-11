@@ -1,10 +1,39 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Cpu, Download, Database, RefreshCw, FileSpreadsheet, Layers, Sparkles } from 'lucide-react';
+import { AnalyticsSubNav } from '../components/common/AnalyticsSubNav';
+import { ConfirmModal } from '../components/common/ConfirmModal';
 
-export const ModelEvolutionPage: React.FC = () => {
+interface ModelEvolutionPageProps {
+  onTabChange?: (tab: string) => void;
+}
+
+export const ModelEvolutionPage: React.FC<ModelEvolutionPageProps> = ({ onTabChange }) => {
+  const [modalState, setModalState] = useState<{
+    isOpen: boolean;
+    title: string;
+    message: string;
+    variant: 'info' | 'success' | 'warning';
+  }>({
+    isOpen: false,
+    title: '',
+    message: '',
+    variant: 'info',
+  });
+
+  const showNotification = (title: string, message: string, variant: 'info' | 'success' | 'warning' = 'info') => {
+    setModalState({
+      isOpen: true,
+      title,
+      message,
+      variant,
+    });
+  };
+
   return (
     <div className="space-y-6 pb-20">
-      
+      {/* SubNav for quick switching */}
+      {onTabChange && <AnalyticsSubNav activeTab="model-evolution" setActiveTab={onTabChange} />}
+
       {/* Header */}
       <div className="bg-industrial-card border border-industrial-border rounded-3xl p-6 shadow-scada bg-gradient-to-r from-industrial-card via-industrial-card to-blue-950/30">
         <div className="flex items-center gap-3">
@@ -42,7 +71,7 @@ export const ModelEvolutionPage: React.FC = () => {
             </div>
           </div>
           <button
-            onClick={() => alert('Download do arquivo CSV de sessões iniciado.')}
+            onClick={() => showNotification('Exportação CSV', 'O download do arquivo CSV com todas as sessões de torra foi iniciado com sucesso.', 'success')}
             className="w-full h-12 bg-industrial-cardHover border border-industrial-borderHover text-emerald-400 font-bold text-xs rounded-xl flex items-center justify-center gap-2 hover:bg-emerald-950/40 transition-colors"
           >
             <Download className="w-4 h-4" />
@@ -60,7 +89,7 @@ export const ModelEvolutionPage: React.FC = () => {
             </div>
           </div>
           <button
-            onClick={() => alert('Compilando pacote ZIP de imagens rotuladas...')}
+            onClick={() => showNotification('Gerando Pacote Roboflow', 'O pacote ZIP com as imagens rotuladas e metadados de inferência foi preparado.', 'info')}
             className="w-full h-12 bg-industrial-cardHover border border-industrial-borderHover text-purple-400 font-bold text-xs rounded-xl flex items-center justify-center gap-2 hover:bg-purple-950/40 transition-colors"
           >
             <Download className="w-4 h-4" />
@@ -92,7 +121,7 @@ export const ModelEvolutionPage: React.FC = () => {
             </div>
           </div>
           <button
-            onClick={() => alert('Pipeline de retreinamento Roboflow agendado.')}
+            onClick={() => showNotification('Pipeline de Retreinamento', 'A solicitação de retreinamento do modelo foi enviada para a fila de processamento.', 'warning')}
             className="w-full h-12 bg-industrial-cardHover border border-industrial-borderHover text-amber-400 font-bold text-xs rounded-xl flex items-center justify-center gap-2 hover:bg-amber-950/40 transition-colors"
           >
             <RefreshCw className="w-4 h-4" />
@@ -101,6 +130,18 @@ export const ModelEvolutionPage: React.FC = () => {
         </div>
 
       </div>
+
+      {/* Modal Notification */}
+      <ConfirmModal
+        isOpen={modalState.isOpen}
+        title={modalState.title}
+        message={modalState.message}
+        variant={modalState.variant}
+        singleButton={true}
+        confirmText="Entendido"
+        onConfirm={() => setModalState(prev => ({ ...prev, isOpen: false }))}
+        onCancel={() => setModalState(prev => ({ ...prev, isOpen: false }))}
+      />
 
     </div>
   );

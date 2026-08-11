@@ -175,14 +175,12 @@ export const RoastProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   }, []);
 
   const deleteOven = useCallback((ovenId: OvenId) => {
-    if (window.confirm(`Tem certeza que deseja remover o Forno ${ovenId}?`)) {
-      setOvens(prev => prev.filter(o => o.id !== ovenId));
-      setActiveRoasts(prev => {
-        const next = { ...prev };
-        delete next[ovenId];
-        return next;
-      });
-    }
+    setOvens(prev => prev.filter(o => o.id !== ovenId));
+    setActiveRoasts(prev => {
+      const next = { ...prev };
+      delete next[ovenId];
+      return next;
+    });
   }, []);
 
   const startRoast = useCallback(({ ovenId, operatorId, operatorName, targetQuantityKg, notes }: {

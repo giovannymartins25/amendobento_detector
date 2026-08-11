@@ -2,10 +2,14 @@ import React, { useState } from 'react';
 import { storageService } from '../services/storageService';
 import { RoastSession } from '../types/roast';
 import { formatDateTime, formatSecondsToReadable, getStageBadgeStyles, getStageLabel } from '../utils/formatters';
-import { RoastTimeline } from '../components/roast/RoastTimeline';
-import { History, Search, Filter, X, Clock, User } from 'lucide-react';
+import { History as HistoryIcon, Search, Filter, X, Clock, User } from 'lucide-react';
+import { AnalyticsSubNav } from '../components/common/AnalyticsSubNav';
 
-export const HistoryPage: React.FC = () => {
+interface HistoryPageProps {
+  onTabChange?: (tab: string) => void;
+}
+
+export const HistoryPage: React.FC<HistoryPageProps> = ({ onTabChange }) => {
   const sessions = storageService.getSessions().filter(s => s.status === 'completed');
 
   const [searchTerm, setSearchTerm] = useState('');
@@ -25,11 +29,14 @@ export const HistoryPage: React.FC = () => {
   return (
     <div className="space-y-6 pb-20">
       
+      {/* SubNav for quick switching */}
+      {onTabChange && <AnalyticsSubNav activeTab="history" setActiveTab={onTabChange} />}
+
       {/* Header */}
       <div className="bg-industrial-card border border-industrial-border rounded-3xl p-6 shadow-scada bg-gradient-to-r from-industrial-card via-industrial-card to-blue-950/30">
         <div className="flex items-center gap-3">
           <div className="w-12 h-12 rounded-2xl bg-industrial-accent/20 border border-industrial-accent/40 text-industrial-accent flex items-center justify-center shadow-scada-glow">
-            <History className="w-7 h-7" />
+            <HistoryIcon className="w-7 h-7" />
           </div>
           <div>
             <h2 className="text-2xl font-black text-white font-mono tracking-tight">HISTÓRICO COMPLETO DE TORRAS</h2>
@@ -176,9 +183,6 @@ export const HistoryPage: React.FC = () => {
                 </div>
               </div>
             )}
-
-            {/* Timeline */}
-            <RoastTimeline events={selectedSession.timeline} />
 
           </div>
         </div>

@@ -5,9 +5,9 @@ import { analyticsEngine } from '../services/analyticsEngine';
 import { roboflowService } from '../services/roboflowService';
 import { formatSecondsToMMSS, getStageLabel, getStageBadgeStyles } from '../utils/formatters';
 import { RoastStageProgressBar } from '../components/roast/RoastStageProgressBar';
-import { RoastTimeline } from '../components/roast/RoastTimeline';
 import { HumanFeedbackButtons } from '../components/aiFeedback/HumanFeedbackButtons';
 import { CameraCaptureModal } from '../components/roast/CameraCaptureModal';
+import { ConfirmModal } from '../components/common/ConfirmModal';
 import { Camera, Upload, Square, User, Award, ArrowLeft, Loader2, Sparkles, AlertCircle, Flame } from 'lucide-react';
 
 interface ActiveRoastPageProps {
@@ -22,6 +22,7 @@ export const ActiveRoastPage: React.FC<ActiveRoastPageProps> = ({ ovenId, onBack
   const [isCameraOpen, setIsCameraOpen] = useState(false);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [latestAnalysis, setLatestAnalysis] = useState<AnalysisResult | null>(null);
+  const [isFinishModalOpen, setIsFinishModalOpen] = useState(false);
 
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const imageRef = useRef<HTMLImageElement>(null);
@@ -120,11 +121,10 @@ export const ActiveRoastPage: React.FC<ActiveRoastPageProps> = ({ ovenId, onBack
     }
   };
 
-  const handleFinish = () => {
-    if (window.confirm(`Tem certeza que deseja FINALIZAR a torra do Forno ${ovenId}?`)) {
-      finishRoast(ovenId);
-      onBack();
-    }
+  const handleConfirmFinish = () => {
+    finishRoast(ovenId);
+    setIsFinishModalOpen(false);
+    onBack();
   };
 
   return (
@@ -272,13 +272,11 @@ export const ActiveRoastPage: React.FC<ActiveRoastPageProps> = ({ ovenId, onBack
         </div>
       )}
 
-      <RoastTimeline events={session.timeline} />
-
-      {/* Sticky Bottom Finish Button (Elevated above BottomNav on mobile) */}
+      {/* Sticky Bottom Finish Button */}
       <div className="fixed bottom-[60px] lg:bottom-0 left-0 right-0 z-40 bg-industrial-card/95 backdrop-blur-md border-t border-industrial-border p-3 sm:p-4 shadow-2xl">
         <div className="max-w-xl mx-auto">
           <button
-            onClick={handleFinish}
+            onClick={() => setIsFinishModalOpen(true)}
             className="w-full h-14 bg-gradient-to-r from-rose-600 to-red-700 hover:from-rose-500 hover:to-red-600 text-white font-extrabold rounded-xl shadow-danger-glow flex items-center justify-center gap-3 text-lg tracking-wider active:scale-98 transition-all"
           >
             <Square className="w-6 h-6 fill-current" />
@@ -287,11 +285,25 @@ export const ActiveRoastPage: React.FC<ActiveRoastPageProps> = ({ ovenId, onBack
         </div>
       </div>
 
+      {/* Camera Capture Modal */}
       <CameraCaptureModal
         isOpen={isCameraOpen}
         onClose={() => setIsCameraOpen(false)}
         onCapture={handleProcessImage}
       />
+
+      {/* Custom Confirmation Modal for Finishing Roast */}
+      <ConfirmModal
+        isOpen={isFinishModalOpen}
+        title="Finalizar Torra"
+        message={`Tem certeza que deseja finalizar a torra no Forno ${ovenId}? A sessão de monitoramento será encerrada e gravada no histórico.`}
+        variant="danger"
+        confirmText="Finalizar Torra"
+        cancelText="Continuar Torra"
+        onConfirm={handleConfirmFinish}
+        onCancel={() => setIsFinishModalOpen(false)}
+      />
+
     </div>
   );
 };

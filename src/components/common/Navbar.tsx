@@ -1,7 +1,24 @@
-import React from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { useAuth } from '../../contexts/AuthContext';
 import { useRoast } from '../../contexts/RoastContext';
-import { Flame, Tv, BarChart3, History, Image as ImageIcon, BrainCircuit, UserCheck, ShieldCheck, LogOut, Settings, Bell } from 'lucide-react';
+import {
+  Flame,
+  Tv,
+  BarChart3,
+  History,
+  Image as ImageIcon,
+  BrainCircuit,
+  UserCheck,
+  ShieldCheck,
+  LogOut,
+  Settings,
+  Bell,
+  ChevronDown,
+  User,
+  Sparkles,
+  TrendingUp,
+  X
+} from 'lucide-react';
 
 interface NavbarProps {
   activeTab: string;
@@ -12,32 +29,38 @@ export const Navbar: React.FC<NavbarProps> = ({ activeTab, setActiveTab }) => {
   const { currentUser, logout, isAdmin } = useAuth();
   const { alerts } = useRoast();
 
+  const [isDropdownOpen, setIsDropdownOpen] = useState(false);
+  const [isProfileModalOpen, setIsProfileModalOpen] = useState(false);
+
+  const dropdownRef = useRef<HTMLDivElement>(null);
+
+  const isAnalyticsActive = ['history', 'gallery', 'ai-performance', 'model-evolution', 'admin'].includes(activeTab);
+
+  // Close dropdown on click outside
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
+        setIsDropdownOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
+
   return (
     <header className="bg-industrial-card border-b border-industrial-border sticky top-0 z-40 shadow-scada">
       <div className="max-w-7xl mx-auto px-4 py-3 flex items-center justify-between">
         
-        {/* Brand Logo & SCADA Status Badge */}
-        <div className="flex items-center gap-3 cursor-pointer" onClick={() => setActiveTab('dashboard')}>
-          <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-industrial-accent to-blue-700 flex items-center justify-center shadow-scada-glow">
-            <Flame className="w-6 h-6 text-white animate-pulse" />
-          </div>
-          <div>
-            <div className="flex items-center gap-2">
-              <h1 className="font-extrabold text-lg tracking-tight text-white font-mono">
-                AMENDOBENTO <span className="text-industrial-accent text-xs font-sans px-1.5 py-0.5 rounded bg-industrial-accent/20 border border-industrial-accent/40">SCADA v2.0</span>
-              </h1>
-            </div>
-            <div className="flex items-center gap-1.5 text-xs text-industrial-textMuted">
-              <span className="w-2 h-2 rounded-full bg-emerald-500 animate-ping"></span>
-              <span className="font-medium text-emerald-400">Sistema Conectado</span>
-              <span>•</span>
-              <span>Roboflow AI Ready</span>
-            </div>
-          </div>
+        {/* Brand Logo - Clean AMENDOBENTO Branding */}
+        <div className="cursor-pointer" onClick={() => setActiveTab('dashboard')}>
+          <h1 className="font-black text-2xl tracking-wider text-white font-mono">
+            AMENDOBENTO
+          </h1>
         </div>
 
         {/* Desktop Navigation Tabs */}
         <nav className="hidden lg:flex items-center gap-1 bg-industrial-bg p-1 rounded-xl border border-industrial-border">
+          {/* Fornos - Accessible by all */}
           <button
             onClick={() => setActiveTab('dashboard')}
             className={`flex items-center gap-2 px-3.5 py-2 rounded-lg text-sm font-medium transition-all ${
@@ -50,21 +73,21 @@ export const Navbar: React.FC<NavbarProps> = ({ activeTab, setActiveTab }) => {
             Fornos
           </button>
 
-          <button
-            onClick={() => setActiveTab('kiosk')}
-            className={`flex items-center gap-2 px-3.5 py-2 rounded-lg text-sm font-medium transition-all ${
-              activeTab === 'kiosk'
-                ? 'bg-industrial-accent text-white shadow-scada-glow'
-                : 'text-industrial-textSecondary hover:text-white hover:bg-industrial-card'
-            }`}
-          >
-            <Tv className="w-4 h-4 text-emerald-400" />
-            Painel TV
-          </button>
-
           {/* Admin Exclusive Tabs */}
           {isAdmin && (
             <>
+              <button
+                onClick={() => setActiveTab('kiosk')}
+                className={`flex items-center gap-2 px-3.5 py-2 rounded-lg text-sm font-medium transition-all ${
+                  activeTab === 'kiosk'
+                    ? 'bg-industrial-accent text-white shadow-scada-glow'
+                    : 'text-industrial-textSecondary hover:text-white hover:bg-industrial-card'
+                }`}
+              >
+                <Tv className="w-4 h-4 text-emerald-400" />
+                Painel TV
+              </button>
+
               <button
                 onClick={() => setActiveTab('alerts')}
                 className={`flex items-center gap-2 px-3.5 py-2 rounded-lg text-sm font-medium transition-all relative ${
@@ -76,7 +99,7 @@ export const Navbar: React.FC<NavbarProps> = ({ activeTab, setActiveTab }) => {
                 <Bell className="w-4 h-4 text-amber-400" />
                 Avisos
                 {alerts.length > 0 && (
-                  <span className="px-1.5 py-0.2 rounded-full text-[10px] font-mono bg-amber-500 text-slate-950 font-black">
+                  <span className="px-2 py-0.5 rounded-full text-[10px] font-mono bg-amber-500 text-slate-950 font-black animate-pulse">
                     {alerts.length}
                   </span>
                 )}
@@ -94,60 +117,122 @@ export const Navbar: React.FC<NavbarProps> = ({ activeTab, setActiveTab }) => {
                 Gerenciar Fornos
               </button>
 
-              <button
-                onClick={() => setActiveTab('admin')}
-                className={`flex items-center gap-2 px-3.5 py-2 rounded-lg text-sm font-medium transition-all ${
-                  activeTab === 'admin'
-                    ? 'bg-industrial-accent text-white shadow-scada-glow'
-                    : 'text-industrial-textSecondary hover:text-white hover:bg-industrial-card'
-                }`}
-              >
-                <BarChart3 className="w-4 h-4" />
-                Métricas KPI
-              </button>
+              {/* Combined Dropdown Button: Histórico, Galeria e Métricas IA */}
+              <div className="relative" ref={dropdownRef}>
+                <button
+                  onClick={() => setIsDropdownOpen(!isDropdownOpen)}
+                  className={`flex items-center gap-2 px-3.5 py-2 rounded-lg text-sm font-medium transition-all ${
+                    isAnalyticsActive
+                      ? 'bg-industrial-accent text-white shadow-scada-glow'
+                      : 'text-industrial-textSecondary hover:text-white hover:bg-industrial-card'
+                  }`}
+                >
+                  <Sparkles className="w-4 h-4 text-purple-400" />
+                  <span>Histórico & Análises</span>
+                  <ChevronDown className={`w-4 h-4 transition-transform ${isDropdownOpen ? 'rotate-180' : ''}`} />
+                </button>
 
-              <button
-                onClick={() => setActiveTab('history')}
-                className={`flex items-center gap-2 px-3.5 py-2 rounded-lg text-sm font-medium transition-all ${
-                  activeTab === 'history'
-                    ? 'bg-industrial-accent text-white shadow-scada-glow'
-                    : 'text-industrial-textSecondary hover:text-white hover:bg-industrial-card'
-                }`}
-              >
-                <History className="w-4 h-4" />
-                Histórico
-              </button>
+                {/* Dropdown Menu */}
+                {isDropdownOpen && (
+                  <div className="absolute right-0 mt-2 w-56 bg-industrial-card border border-industrial-border rounded-2xl shadow-2xl p-1.5 z-50 animate-scale-up">
+                    <button
+                      onClick={() => {
+                        setActiveTab('history');
+                        setIsDropdownOpen(false);
+                      }}
+                      className={`w-full flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-xs font-bold transition-all ${
+                        activeTab === 'history'
+                          ? 'bg-industrial-accent text-white'
+                          : 'text-industrial-textSecondary hover:text-white hover:bg-industrial-bg'
+                      }`}
+                    >
+                      <History className="w-4 h-4 text-blue-400" />
+                      <span>Histórico de Torras</span>
+                    </button>
 
-              <button
-                onClick={() => setActiveTab('gallery')}
-                className={`flex items-center gap-2 px-3.5 py-2 rounded-lg text-sm font-medium transition-all ${
-                  activeTab === 'gallery'
-                    ? 'bg-industrial-accent text-white shadow-scada-glow'
-                    : 'text-industrial-textSecondary hover:text-white hover:bg-industrial-card'
-                }`}
-              >
-                <ImageIcon className="w-4 h-4" />
-                Galeria
-              </button>
+                    <button
+                      onClick={() => {
+                        setActiveTab('gallery');
+                        setIsDropdownOpen(false);
+                      }}
+                      className={`w-full flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-xs font-bold transition-all ${
+                        activeTab === 'gallery'
+                          ? 'bg-industrial-accent text-white'
+                          : 'text-industrial-textSecondary hover:text-white hover:bg-industrial-bg'
+                      }`}
+                    >
+                      <ImageIcon className="w-4 h-4 text-emerald-400" />
+                      <span>Galeria de Imagens</span>
+                    </button>
 
-              <button
-                onClick={() => setActiveTab('ai-performance')}
-                className={`flex items-center gap-2 px-3.5 py-2 rounded-lg text-sm font-medium transition-all ${
-                  activeTab === 'ai-performance'
-                    ? 'bg-industrial-accent text-white shadow-scada-glow'
-                    : 'text-industrial-textSecondary hover:text-white hover:bg-industrial-card'
-                }`}
-              >
-                <BrainCircuit className="w-4 h-4 text-purple-400" />
-                Métricas IA
-              </button>
+                    <button
+                      onClick={() => {
+                        setActiveTab('ai-performance');
+                        setIsDropdownOpen(false);
+                      }}
+                      className={`w-full flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-xs font-bold transition-all ${
+                        activeTab === 'ai-performance'
+                          ? 'bg-industrial-accent text-white'
+                          : 'text-industrial-textSecondary hover:text-white hover:bg-industrial-bg'
+                      }`}
+                    >
+                      <BrainCircuit className="w-4 h-4 text-purple-400" />
+                      <span>Métricas de IA</span>
+                    </button>
+
+                    <button
+                      onClick={() => {
+                        setActiveTab('admin');
+                        setIsDropdownOpen(false);
+                      }}
+                      className={`w-full flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-xs font-bold transition-all ${
+                        activeTab === 'admin'
+                          ? 'bg-industrial-accent text-white'
+                          : 'text-industrial-textSecondary hover:text-white hover:bg-industrial-bg'
+                      }`}
+                    >
+                      <BarChart3 className="w-4 h-4 text-emerald-400" />
+                      <span>Métricas KPI</span>
+                    </button>
+
+                    <button
+                      onClick={() => {
+                        setActiveTab('model-evolution');
+                        setIsDropdownOpen(false);
+                      }}
+                      className={`w-full flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-xs font-bold transition-all ${
+                        activeTab === 'model-evolution'
+                          ? 'bg-industrial-accent text-white'
+                          : 'text-industrial-textSecondary hover:text-white hover:bg-industrial-bg'
+                      }`}
+                    >
+                      <TrendingUp className="w-4 h-4 text-amber-400" />
+                      <span>Evolução do Modelo</span>
+                    </button>
+                  </div>
+                )}
+              </div>
             </>
+          )}
+
+          {/* Operator Specific Nav: Ver Perfil button */}
+          {!isAdmin && (
+            <button
+              onClick={() => setIsProfileModalOpen(true)}
+              className="flex items-center gap-2 px-3.5 py-2 rounded-lg text-sm font-medium text-emerald-400 hover:text-white hover:bg-emerald-950/40 transition-all"
+            >
+              <User className="w-4 h-4" />
+              Ver Perfil
+            </button>
           )}
         </nav>
 
-        {/* User Profile & Logout */}
+        {/* User Profile Badge & Actions */}
         <div className="flex items-center gap-3">
-          <div className="flex items-center gap-2 bg-industrial-bg px-3 py-1.5 rounded-xl border border-industrial-border">
+          <div
+            onClick={() => setIsProfileModalOpen(true)}
+            className="flex items-center gap-2 bg-industrial-bg px-3 py-1.5 rounded-xl border border-industrial-border cursor-pointer hover:border-industrial-accent/50 transition-all"
+          >
             {isAdmin ? (
               <ShieldCheck className="w-4 h-4 text-blue-400" />
             ) : (
@@ -159,18 +244,81 @@ export const Navbar: React.FC<NavbarProps> = ({ activeTab, setActiveTab }) => {
                 {isAdmin ? 'ADMIN / SUPERVISÃO' : 'OPERADOR'}
               </span>
             </div>
-
-            <button
-              onClick={logout}
-              title="Trocar de Usuário / Sair"
-              className="ml-2 p-1.5 text-industrial-textMuted hover:text-rose-400 hover:bg-industrial-card rounded-lg transition-colors"
-            >
-              <LogOut className="w-4 h-4" />
-            </button>
           </div>
+
+          <button
+            onClick={logout}
+            title="Sair da Conta"
+            className="p-2 text-industrial-textMuted hover:text-rose-400 hover:bg-industrial-card rounded-xl transition-colors"
+          >
+            <LogOut className="w-4 h-4" />
+          </button>
         </div>
 
       </div>
+
+      {/* User Profile Modal */}
+      {isProfileModalOpen && (
+        <div className="fixed inset-0 z-[110] bg-black/80 backdrop-blur-md flex items-center justify-center p-4 animate-fade-in">
+          <div className="w-full max-w-sm bg-industrial-card border border-industrial-border rounded-3xl p-6 shadow-2xl space-y-5">
+            <div className="flex items-center justify-between border-b border-industrial-border pb-4">
+              <div className="flex items-center gap-3">
+                <div className={`w-12 h-12 rounded-2xl flex items-center justify-center font-bold text-lg ${
+                  isAdmin ? 'bg-blue-500/20 text-blue-400 border border-blue-500/40' : 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/40'
+                }`}>
+                  {currentUser.name.charAt(0)}
+                </div>
+                <div>
+                  <h3 className="font-extrabold text-base text-white">{currentUser.name}</h3>
+                  <span className={`text-xs font-bold uppercase tracking-wider ${isAdmin ? 'text-blue-400' : 'text-emerald-400'}`}>
+                    {isAdmin ? 'ADMINISTRADOR' : 'OPERADOR DE CHÃO DE FÁBRICA'}
+                  </span>
+                </div>
+              </div>
+              <button
+                onClick={() => setIsProfileModalOpen(false)}
+                className="p-1.5 hover:bg-industrial-cardHover text-industrial-textMuted hover:text-white rounded-xl"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <div className="space-y-3 bg-industrial-bg p-4 rounded-2xl border border-industrial-border text-xs">
+              <div className="flex justify-between">
+                <span className="text-industrial-textMuted">ID do Usuário:</span>
+                <span className="font-mono text-white">{currentUser.id}</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-industrial-textMuted">Turno de Trabalho:</span>
+                <span className="font-bold text-white">{currentUser.shift || 'Geral'}</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-industrial-textMuted">Nível de Permissão:</span>
+                <span className="font-bold text-emerald-400">{isAdmin ? 'Acesso Total' : 'Operação de Fornos'}</span>
+              </div>
+            </div>
+
+            <div className="pt-2 space-y-2">
+              <button
+                onClick={() => {
+                  setIsProfileModalOpen(false);
+                  logout();
+                }}
+                className="w-full py-3 bg-rose-950/60 hover:bg-rose-900 border border-rose-600/50 text-rose-300 font-extrabold text-xs rounded-xl flex items-center justify-center gap-2 uppercase tracking-wider transition-all"
+              >
+                <LogOut className="w-4 h-4" />
+                Trocar de Usuário / Sair
+              </button>
+              <button
+                onClick={() => setIsProfileModalOpen(false)}
+                className="w-full py-2.5 bg-industrial-card hover:bg-industrial-cardHover text-industrial-textSecondary text-xs font-bold rounded-xl"
+              >
+                Fechar
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </header>
   );
 };

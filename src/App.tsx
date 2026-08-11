@@ -41,7 +41,7 @@ export const AppContent: React.FC = () => {
       {/* Header Navbar */}
       <Navbar activeTab={activeTab} setActiveTab={setActiveTab} />
 
-      {/* Global SCADA Alert Banner */}
+      {/* Global SCADA Alert Banner (Returns null) */}
       <AlertBanner onOpenAlerts={() => setActiveTab('alerts')} />
 
       {/* Main Content Area */}
@@ -49,7 +49,6 @@ export const AppContent: React.FC = () => {
         {activeTab === 'dashboard' && (
           <DashboardPage
             onNavigateToRoast={handleNavigateToRoast}
-            onNavigateToOvenMgmt={() => setActiveTab('ovens-mgmt')}
           />
         )}
 
@@ -57,7 +56,7 @@ export const AppContent: React.FC = () => {
           <ActiveRoastPage ovenId={selectedOvenForRoastView} onBack={handleBackToDashboard} />
         )}
 
-        {activeTab === 'kiosk' && (
+        {isAdmin && activeTab === 'kiosk' && (
           <KioskTvPage />
         )}
 
@@ -70,23 +69,23 @@ export const AppContent: React.FC = () => {
         )}
 
         {isAdmin && activeTab === 'admin' && (
-          <AdminDashboardPage />
+          <AdminDashboardPage onTabChange={setActiveTab} />
         )}
 
         {isAdmin && activeTab === 'history' && (
-          <HistoryPage />
+          <HistoryPage onTabChange={setActiveTab} />
         )}
 
         {isAdmin && activeTab === 'gallery' && (
-          <ImageGalleryPage />
+          <ImageGalleryPage onTabChange={setActiveTab} />
         )}
 
         {isAdmin && activeTab === 'ai-performance' && (
-          <AiPerformancePage />
+          <AiPerformancePage onTabChange={setActiveTab} />
         )}
 
         {isAdmin && activeTab === 'model-evolution' && (
-          <ModelEvolutionPage />
+          <ModelEvolutionPage onTabChange={setActiveTab} />
         )}
       </main>
 

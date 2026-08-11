@@ -137,7 +137,7 @@ export const OvenCard: React.FC<OvenCardProps> = ({
         )}
       </div>
 
-      {/* Bottom Primary Action Button (Big Touch Target for 1 Hand) */}
+      {/* Bottom Primary Action Button */}
       <div>
         {isRoasting ? (
           <button

@@ -1,24 +1,26 @@
 import React, { useState } from 'react';
 import { useRoast } from '../contexts/RoastContext';
 import { Plus, CheckCircle2, Trash2, Power, AlertTriangle, ShieldCheck } from 'lucide-react';
+import { ConfirmModal } from '../components/common/ConfirmModal';
+import { AddOvenModal } from '../components/oven/AddOvenModal';
+import { OvenConfig } from '../types/roast';
 
 export const OvenManagementPage: React.FC = () => {
   const { ovens, addOven, toggleOvenStatus, deleteOven } = useRoast();
-  const [newOvenName, setNewOvenName] = useState('');
-  const [newOvenNotes, setNewOvenNotes] = useState('');
+  const [ovenToDelete, setOvenToDelete] = useState<OvenConfig | null>(null);
+  const [isAddModalOpen, setIsAddModalOpen] = useState(false);
 
-  const handleAddSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!newOvenName.trim()) return;
-    addOven(newOvenName.trim(), newOvenNotes.trim());
-    setNewOvenName('');
-    setNewOvenNotes('');
+  const handleConfirmDelete = () => {
+    if (ovenToDelete) {
+      deleteOven(ovenToDelete.id);
+      setOvenToDelete(null);
+    }
   };
 
   return (
-    <div className="space-y-6 pb-24">
+    <div className="space-y-6 pb-24 max-w-6xl mx-auto">
       
-      {/* Top Banner */}
+      {/* Top Header Banner + Add Oven Button */}
       <div className="bg-industrial-card border border-industrial-border rounded-3xl p-6 shadow-scada flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
         <div>
           <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-blue-500/20 border border-blue-500/40 text-blue-400 text-xs font-bold uppercase tracking-wider mb-2">
@@ -29,9 +31,18 @@ export const OvenManagementPage: React.FC = () => {
             GERENCIAMENTO DA FROTA DE FORNOS
           </h2>
           <p className="text-xs sm:text-sm text-industrial-textSecondary mt-1">
-            Cadastre novos fornos, remova ou retire equipamentos de circulação na fábrica. Tirar um forno de circulação aqui remove seu botão de ativação da aba Fornos.
+            Cadastre novos fornos, remova ou coloque equipamentos em circulação na fábrica.
           </p>
         </div>
+
+        {/* Primary Action Button: Cadastrar Forno */}
+        <button
+          onClick={() => setIsAddModalOpen(true)}
+          className="w-full md:w-auto px-5 py-3.5 bg-industrial-accent hover:bg-blue-600 text-white font-extrabold text-xs sm:text-sm rounded-2xl shadow-scada-glow flex items-center justify-center gap-2.5 uppercase tracking-wider active:scale-98 transition-all shrink-0"
+        >
+          <Plus className="w-5 h-5" />
+          <span>Cadastrar Novo Forno</span>
+        </button>
       </div>
 
       {/* Grid of Ovens Status */}
@@ -100,7 +111,7 @@ export const OvenManagementPage: React.FC = () => {
                 </button>
 
                 <button
-                  onClick={() => deleteOven(oven.id)}
+                  onClick={() => setOvenToDelete(oven)}
                   className="p-3 bg-rose-950/60 border border-rose-600/40 text-rose-300 hover:bg-rose-900 rounded-xl transition-colors"
                   title="Remover Forno"
                 >
@@ -113,49 +124,24 @@ export const OvenManagementPage: React.FC = () => {
         })}
       </div>
 
-      {/* Add New Oven Form */}
-      <div className="bg-industrial-card border border-industrial-border rounded-3xl p-6 shadow-scada space-y-4">
-        <h3 className="font-extrabold text-lg text-white font-mono flex items-center gap-2">
-          <Plus className="w-5 h-5 text-industrial-accent" />
-          CADASTRAR NOVO FORNO NA LINHA
-        </h3>
-        
-        <form onSubmit={handleAddSubmit} className="grid grid-cols-1 md:grid-cols-3 gap-4 items-end">
-          <div>
-            <label className="block text-xs font-bold text-industrial-textSecondary uppercase tracking-wider mb-1.5">
-              Nome do Forno
-            </label>
-            <input
-              type="text"
-              value={newOvenName}
-              onChange={e => setNewOvenName(e.target.value)}
-              placeholder={`Ex: Forno ${ovens.length + 1}`}
-              className="w-full bg-industrial-bg border border-industrial-border rounded-xl p-3 text-white text-sm focus:border-industrial-accent focus:outline-none"
-            />
-          </div>
+      {/* Add Oven Modal */}
+      <AddOvenModal
+        isOpen={isAddModalOpen}
+        onClose={() => setIsAddModalOpen(false)}
+        onAdd={addOven}
+      />
 
-          <div>
-            <label className="block text-xs font-bold text-industrial-textSecondary uppercase tracking-wider mb-1.5">
-              Observação / Descrição
-            </label>
-            <input
-              type="text"
-              value={newOvenNotes}
-              onChange={e => setNewOvenNotes(e.target.value)}
-              placeholder="Ex: Forno de alta capacidade linha 2"
-              className="w-full bg-industrial-bg border border-industrial-border rounded-xl p-3 text-white text-sm focus:border-industrial-accent focus:outline-none"
-            />
-          </div>
-
-          <button
-            type="submit"
-            className="w-full h-12 bg-industrial-accent hover:bg-blue-600 text-white font-extrabold rounded-xl shadow-scada-glow flex items-center justify-center gap-2 text-sm uppercase tracking-wider transition-all"
-          >
-            <Plus className="w-5 h-5" />
-            Adicionar Forno
-          </button>
-        </form>
-      </div>
+      {/* Custom Confirmation Modal for Deleting Oven */}
+      <ConfirmModal
+        isOpen={ovenToDelete !== null}
+        title="Excluir Forno"
+        message={`Deseja realmente excluir o ${ovenToDelete?.name || 'Forno'} da frota de produção? Esta ação não pode ser desfeita e removerá os dados do equipamento.`}
+        variant="danger"
+        confirmText="Excluir Forno"
+        cancelText="Cancelar"
+        onConfirm={handleConfirmDelete}
+        onCancel={() => setOvenToDelete(null)}
+      />
 
     </div>
   );

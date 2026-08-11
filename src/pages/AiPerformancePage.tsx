@@ -4,12 +4,20 @@ import { getStageLabel } from '../utils/formatters';
 import { RoastStage } from '../types/roast';
 import { BrainCircuit, ThumbsUp, ThumbsDown, TrendingUp, Layers } from 'lucide-react';
 import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer } from 'recharts';
+import { AnalyticsSubNav } from '../components/common/AnalyticsSubNav';
 
-export const AiPerformancePage: React.FC = () => {
+interface AiPerformancePageProps {
+  onTabChange?: (tab: string) => void;
+}
+
+export const AiPerformancePage: React.FC<AiPerformancePageProps> = ({ onTabChange }) => {
   const metrics = analyticsEngine.getAiModelMetrics();
 
   return (
     <div className="space-y-6 pb-20">
+      {/* SubNav for quick switching */}
+      {onTabChange && <AnalyticsSubNav activeTab="ai-performance" setActiveTab={onTabChange} />}
+
       <div className="bg-industrial-card border border-industrial-border rounded-3xl p-6 shadow-scada bg-gradient-to-r from-industrial-card via-industrial-card to-purple-950/30">
         <div className="flex items-center gap-3">
           <div className="w-12 h-12 rounded-2xl bg-purple-500/20 border border-purple-500/40 text-purple-400 flex items-center justify-center shadow-scada-glow">
