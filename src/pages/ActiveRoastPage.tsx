@@ -8,7 +8,7 @@ import { RoastStageProgressBar } from '../components/roast/RoastStageProgressBar
 import { HumanFeedbackButtons } from '../components/aiFeedback/HumanFeedbackButtons';
 import { CameraCaptureModal } from '../components/roast/CameraCaptureModal';
 import { ConfirmModal } from '../components/common/ConfirmModal';
-import { Camera, Upload, Square, User, Award, ArrowLeft, Loader2, Sparkles, AlertCircle, Flame } from 'lucide-react';
+import { Camera, Upload, Square, User, Award, ArrowLeft, Loader2, Clock, TrendingUp, AlertCircle } from 'lucide-react';
 
 interface ActiveRoastPageProps {
   ovenId: OvenId;
@@ -146,8 +146,8 @@ export const ActiveRoastPage: React.FC<ActiveRoastPageProps> = ({ ovenId, onBack
       </div>
 
       {/* Main SCADA Header Box */}
-      <div className="bg-industrial-card border border-industrial-border rounded-3xl p-6 shadow-scada bg-gradient-to-b from-industrial-card to-industrial-bg">
-        <div className="flex flex-col sm:flex-row items-center justify-between gap-4 text-center sm:text-left border-b border-industrial-border pb-4 mb-4">
+      <div className="bg-industrial-card border border-industrial-border rounded-3xl p-6 shadow-scada bg-gradient-to-b from-industrial-card to-industrial-bg space-y-4">
+        <div className="flex flex-col sm:flex-row items-center justify-between gap-4 text-center sm:text-left border-b border-industrial-border pb-4">
           <div className="flex items-center gap-3">
             <div className="w-14 h-14 rounded-2xl bg-emerald-500/20 text-emerald-400 font-mono font-extrabold text-2xl flex items-center justify-center border border-emerald-500/40 shadow-success-glow">
               F{ovenId}
@@ -172,33 +172,57 @@ export const ActiveRoastPage: React.FC<ActiveRoastPageProps> = ({ ovenId, onBack
           </div>
         </div>
 
-        {/* Predictive Assistant */}
-        <div className={`p-3.5 rounded-2xl flex items-start gap-3 border ${
-          estimate.isFirstRoastOfDay
-            ? 'bg-amber-950/20 border-amber-500/40'
-            : 'bg-industrial-cardHover border-industrial-borderActive'
-        }`}>
-          {estimate.isFirstRoastOfDay ? (
-            <Flame className="w-5 h-5 text-amber-400 flex-shrink-0 mt-0.5 animate-pulse" />
-          ) : (
-            <Sparkles className="w-5 h-5 text-industrial-accent flex-shrink-0 mt-0.5" />
-          )}
-          <div className="text-xs">
-            <div className="flex items-center gap-2 mb-0.5">
-              <span className="font-bold text-white">Assistente Preditivo:</span>
-              {estimate.isFirstRoastOfDay && (
-                <span className="text-[10px] font-mono font-extrabold px-2 py-0.5 rounded bg-amber-500/20 text-amber-300 border border-amber-500/40">
-                  🔥 1ª TORRA DO DIA (+5 MIN EST.)
+        {/* Estimated Time and Estimated Percentage Cards */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1">
+          
+          {/* Tempo Estimado */}
+          <div className="bg-industrial-bg border border-industrial-border rounded-2xl p-4 flex items-center justify-between shadow-inner">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-xl bg-industrial-accent/20 border border-industrial-accent/40 text-industrial-accent flex items-center justify-center">
+                <Clock className="w-5 h-5" />
+              </div>
+              <div>
+                <span className="text-[10px] font-bold text-industrial-textMuted uppercase tracking-wider block">
+                  Tempo Estimado
                 </span>
-              )}
+                <span className="font-mono text-lg font-black text-white">
+                  ~{Math.floor(estimate.estimatedTotalDurationSeconds / 60)} min
+                </span>
+              </div>
             </div>
-            <span className="text-industrial-textSecondary">{estimate.message}</span>
-            <div className="mt-1 flex items-center gap-3 text-[10px] font-mono text-industrial-textMuted">
-              <span>Estimativa Total: ~{Math.floor(estimate.estimatedTotalDurationSeconds / 60)} min</span>
-              <span>•</span>
-              <span>Progresso Estimado: {estimate.progressPercentage}%</span>
+
+            {estimate.isFirstRoastOfDay && (
+              <span className="text-[9px] font-mono font-bold px-2 py-1 rounded bg-amber-500/20 text-amber-300 border border-amber-500/40 uppercase">
+                🔥 Forno Frio
+              </span>
+            )}
+          </div>
+
+          {/* Porcentagem Estimada */}
+          <div className="bg-industrial-bg border border-industrial-border rounded-2xl p-4 flex items-center justify-between shadow-inner">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-xl bg-emerald-500/20 border border-emerald-500/40 text-emerald-400 flex items-center justify-center">
+                <TrendingUp className="w-5 h-5" />
+              </div>
+              <div>
+                <span className="text-[10px] font-bold text-industrial-textMuted uppercase tracking-wider block">
+                  Porcentagem Estimada
+                </span>
+                <span className="font-mono text-lg font-black text-emerald-400">
+                  {estimate.progressPercentage}%
+                </span>
+              </div>
+            </div>
+
+            {/* Progress Mini Bar */}
+            <div className="w-16 bg-industrial-card border border-industrial-border h-2 rounded-full overflow-hidden">
+              <div
+                className="bg-emerald-400 h-full transition-all duration-500"
+                style={{ width: `${Math.min(100, estimate.progressPercentage)}%` }}
+              />
             </div>
           </div>
+
         </div>
       </div>
 
