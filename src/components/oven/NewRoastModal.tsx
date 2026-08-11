@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { OvenId } from '../../types/roast';
 import { useAuth } from '../../contexts/AuthContext';
 import { useRoast } from '../../contexts/RoastContext';
-import { Play, X, User, Scale, FileText } from 'lucide-react';
+import { Play, X, User, Scale } from 'lucide-react';
 
 interface NewRoastModalProps {
   ovenId: OvenId | null;
@@ -15,12 +15,11 @@ export const NewRoastModal: React.FC<NewRoastModalProps> = ({
   onClose,
   onRoastStarted,
 }) => {
-  const { users, currentUser, isAdmin } = useAuth();
+  const { users, currentUser } = useAuth();
   const { startRoast } = useRoast();
 
   const [selectedOperatorId, setSelectedOperatorId] = useState(currentUser.id);
   const [targetQuantityKg, setTargetQuantityKg] = useState<number>(50);
-  const [notes, setNotes] = useState('');
 
   if (ovenId === null) return null;
 
@@ -33,7 +32,7 @@ export const NewRoastModal: React.FC<NewRoastModalProps> = ({
       operatorId: op.id,
       operatorName: op.name,
       targetQuantityKg,
-      notes,
+      notes: '',
     });
 
     onRoastStarted(ovenId);
@@ -42,7 +41,7 @@ export const NewRoastModal: React.FC<NewRoastModalProps> = ({
 
   return (
     <div className="fixed inset-0 z-[100] bg-black/85 backdrop-blur-md flex items-end sm:items-center justify-center p-0 sm:p-4 animate-fade-in overflow-hidden">
-      <div className="w-full max-w-lg bg-industrial-card border border-industrial-border rounded-t-3xl sm:rounded-3xl shadow-2xl flex flex-col max-h-[90dvh] sm:max-h-[85vh] my-0 sm:my-auto overflow-hidden">
+      <div className="w-full max-w-lg bg-industrial-card border border-industrial-border rounded-t-3xl sm:rounded-3xl shadow-2xl flex flex-col max-h-[90dvh] sm:max-h-[85vh] my-0 sm:my-auto overflow-hidden animate-scale-up">
         
         {/* Header */}
         <div className="flex items-center justify-between border-b border-industrial-border p-4 sm:p-5 shrink-0 bg-industrial-card">
@@ -52,7 +51,7 @@ export const NewRoastModal: React.FC<NewRoastModalProps> = ({
             </div>
             <div>
               <h3 className="font-extrabold text-lg text-white font-mono">INICIAR NOVA TORRA</h3>
-              <p className="text-xs text-industrial-textMuted">Configuração do Lote para o Forno {ovenId}</p>
+              <p className="text-xs text-industrial-textMuted">Confirme os dados para iniciar o Forno {ovenId}</p>
             </div>
           </div>
           <button
@@ -67,7 +66,7 @@ export const NewRoastModal: React.FC<NewRoastModalProps> = ({
         {/* Form Container */}
         <form onSubmit={handleSubmit} className="flex flex-col flex-1 min-h-0">
           
-          {/* Scrollable Fields */}
+          {/* Fields */}
           <div className="flex-1 overflow-y-auto p-4 sm:p-6 space-y-4">
             
             {/* Operator Select */}
@@ -79,7 +78,7 @@ export const NewRoastModal: React.FC<NewRoastModalProps> = ({
               <select
                 value={selectedOperatorId}
                 onChange={(e) => setSelectedOperatorId(e.target.value)}
-                className="w-full bg-industrial-bg border border-industrial-border rounded-xl p-3 text-white font-semibold text-sm focus:border-industrial-accent focus:outline-none"
+                className="w-full bg-industrial-bg border border-industrial-border rounded-xl p-3.5 text-white font-semibold text-sm focus:border-industrial-accent focus:outline-none"
               >
                 {users.filter(u => u.role === 'operator').map(u => (
                   <option key={u.id} value={u.id} className="bg-industrial-card text-white">
@@ -100,26 +99,9 @@ export const NewRoastModal: React.FC<NewRoastModalProps> = ({
                 value={targetQuantityKg}
                 onChange={(e) => setTargetQuantityKg(Number(e.target.value))}
                 placeholder="Ex: 50"
-                className="w-full bg-industrial-bg border border-industrial-border rounded-xl p-3 text-white font-mono font-bold text-sm focus:border-industrial-accent focus:outline-none"
+                className="w-full bg-industrial-bg border border-industrial-border rounded-xl p-3.5 text-white font-mono font-bold text-sm focus:border-industrial-accent focus:outline-none"
               />
             </div>
-
-            {/* Notes (Only for Admin) */}
-            {isAdmin && (
-              <div>
-                <label className="block text-xs font-bold text-industrial-textSecondary uppercase tracking-wider mb-1.5 flex items-center gap-2">
-                  <FileText className="w-4 h-4 text-purple-400" />
-                  Observações do Lote <span className="text-industrial-textMuted text-[10px]">(Opcional)</span>
-                </label>
-                <input
-                  type="text"
-                  value={notes}
-                  onChange={(e) => setNotes(e.target.value)}
-                  placeholder="Ex: Lote de amendoim cultivar IAC Tatu ST..."
-                  className="w-full bg-industrial-bg border border-industrial-border rounded-xl p-3 text-white text-sm focus:border-industrial-accent focus:outline-none"
-                />
-              </div>
-            )}
 
           </div>
 
