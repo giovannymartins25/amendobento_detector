@@ -65,7 +65,7 @@ export const KioskTvPage: React.FC = () => {
           </div>
           <div>
             <h2 className="text-2xl font-black text-white font-mono tracking-tight flex items-center gap-3">
-              PAINEL GERAL DA PRODUÇÃO — CHÃO DE FÁBRICA
+              PAINEL GERAL DA PRODUÇÃO
               <span className="w-3 h-3 rounded-full bg-emerald-400 animate-ping inline-block" />
             </h2>
             <p className="text-xs text-industrial-textSecondary">Monitoramento em tempo real dos fornos de torração</p>
@@ -104,20 +104,17 @@ export const KioskTvPage: React.FC = () => {
 
       {/* Visual Alarm Banner on Painel TV when near completion */}
       {anyOvenNearCompletion && (
-        <div className="bg-amber-950/90 border-2 border-amber-500 text-amber-300 p-4 sm:p-5 rounded-3xl flex flex-col sm:flex-row items-center justify-between gap-4 shadow-[0_0_40px_rgba(245,158,11,0.6)] animate-pulse">
+        <div className="bg-amber-950/90 border-2 border-amber-500 text-amber-300 p-4 sm:p-5 rounded-3xl flex items-center justify-between gap-4 shadow-[0_0_40px_rgba(245,158,11,0.6)] animate-pulse">
           <div className="flex items-center gap-3 text-center sm:text-left">
             <AlertTriangle className="w-8 h-8 text-amber-400 animate-bounce shrink-0" />
             <div>
               <h3 className="font-mono font-black text-lg text-amber-200 uppercase tracking-wider">
-                🚨 ALERTA DE TORRA PRÓXIMA DO PONTO (CHÃO DE FÁBRICA)
+                🚨 ALERTA DE TORRA PRÓXIMA DO PONTO
               </h3>
               <p className="text-xs text-amber-300 font-medium mt-0.5">
                 Aviso disparado! Forno 2 com aviso ativado (faltando 50s no modo teste de 1 min).
               </p>
             </div>
-          </div>
-          <div className="flex items-center gap-2 bg-amber-500 text-black px-4 py-2 rounded-2xl font-mono font-black text-xs uppercase tracking-wider shadow-lg">
-            <span>ALARME SONORO & VISUAL ATIVO</span>
           </div>
         </div>
       )}

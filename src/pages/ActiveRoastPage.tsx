@@ -9,7 +9,7 @@ import { HumanFeedbackButtons } from '../components/aiFeedback/HumanFeedbackButt
 import { CameraCaptureModal } from '../components/roast/CameraCaptureModal';
 import { ConfirmModal } from '../components/common/ConfirmModal';
 import { NewRoastModal } from '../components/oven/NewRoastModal';
-import { Camera, Upload, Square, User, Award, ArrowLeft, Loader2, Clock, TrendingUp, AlertCircle, Flame, Play } from 'lucide-react';
+import { Camera, Upload, Square, User, Award, ArrowLeft, Loader2, Clock, TrendingUp, AlertCircle, Plus } from 'lucide-react';
 
 interface ActiveRoastPageProps {
   ovenId: OvenId;
@@ -146,7 +146,7 @@ export const ActiveRoastPage: React.FC<ActiveRoastPageProps> = ({ ovenId, onBack
             onClick={() => setIsNewRoastModalOpen(true)}
             className="flex items-center gap-2 px-3.5 py-2 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white font-extrabold text-xs rounded-xl shadow-success-glow transition-all active:scale-95 uppercase tracking-wider"
           >
-            <Flame className="w-4 h-4 fill-current animate-pulse" />
+            <Plus className="w-4 h-4" />
             <span>Iniciar Nova Torra</span>
           </button>
 
@@ -175,7 +175,7 @@ export const ActiveRoastPage: React.FC<ActiveRoastPageProps> = ({ ovenId, onBack
                   onClick={() => setIsNewRoastModalOpen(true)}
                   className="flex items-center gap-1.5 px-2.5 py-1 bg-emerald-500/20 hover:bg-emerald-500/30 border border-emerald-500/40 text-emerald-300 font-bold text-[11px] rounded-lg transition-all active:scale-95"
                 >
-                  <Play className="w-3 h-3 text-emerald-400 fill-current" />
+                  <Plus className="w-3.5 h-3.5 text-emerald-400" />
                   <span>Iniciar Nova Torra</span>
                 </button>
               </div>

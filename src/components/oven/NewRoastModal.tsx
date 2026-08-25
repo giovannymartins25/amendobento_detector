@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { OvenId } from '../../types/roast';
 import { useAuth } from '../../contexts/AuthContext';
 import { useRoast } from '../../contexts/RoastContext';
-import { Play, X, User, Scale } from 'lucide-react';
+import { Play, X, User, Scale, Flame } from 'lucide-react';
 
 interface NewRoastModalProps {
   ovenId: OvenId | null;
@@ -16,8 +16,14 @@ export const NewRoastModal: React.FC<NewRoastModalProps> = ({
   onRoastStarted,
 }) => {
   const { users, currentUser } = useAuth();
-  const { startRoast } = useRoast();
+  const { ovens, startRoast } = useRoast();
 
+  // Filter available active ovens and default to a DIFFERENT oven if opened from an active roast page
+  const availableOvens = ovens.filter(o => o.status === 'active');
+  const differentOvens = availableOvens.filter(o => o.id !== ovenId);
+  const initialOvenId = differentOvens.length > 0 ? differentOvens[0].id : (ovenId || (availableOvens[0]?.id ?? 1));
+
+  const [selectedOvenId, setSelectedOvenId] = useState<OvenId>(initialOvenId);
   const [selectedOperatorId, setSelectedOperatorId] = useState(currentUser.id);
   const [targetQuantityKg, setTargetQuantityKg] = useState<number>(50);
 
@@ -28,14 +34,14 @@ export const NewRoastModal: React.FC<NewRoastModalProps> = ({
     const op = users.find(u => u.id === selectedOperatorId) || currentUser;
 
     startRoast({
-      ovenId,
+      ovenId: selectedOvenId,
       operatorId: op.id,
       operatorName: op.name,
       targetQuantityKg,
       notes: '',
     });
 
-    onRoastStarted(ovenId);
+    onRoastStarted(selectedOvenId);
     onClose();
   };
 
@@ -47,11 +53,11 @@ export const NewRoastModal: React.FC<NewRoastModalProps> = ({
         <div className="flex items-center justify-between border-b border-industrial-border p-4 sm:p-5 shrink-0 bg-industrial-card">
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 rounded-xl bg-emerald-500/20 text-emerald-400 flex items-center justify-center font-mono font-extrabold border border-emerald-500/40">
-              F{ovenId}
+              F{selectedOvenId}
             </div>
             <div>
               <h3 className="font-extrabold text-lg text-white font-mono">INICIAR NOVA TORRA</h3>
-              <p className="text-xs text-industrial-textMuted">Confirme os dados para iniciar o Forno {ovenId}</p>
+              <p className="text-xs text-industrial-textMuted">Confirme os dados para iniciar o Forno {selectedOvenId}</p>
             </div>
           </div>
           <button
@@ -69,6 +75,25 @@ export const NewRoastModal: React.FC<NewRoastModalProps> = ({
           {/* Fields */}
           <div className="flex-1 overflow-y-auto p-4 sm:p-6 space-y-4">
             
+            {/* Oven Select */}
+            <div>
+              <label className="block text-xs font-bold text-industrial-textSecondary uppercase tracking-wider mb-1.5 flex items-center gap-2">
+                <Flame className="w-4 h-4 text-emerald-400" />
+                Selecione o Forno
+              </label>
+              <select
+                value={selectedOvenId}
+                onChange={(e) => setSelectedOvenId(Number(e.target.value) as OvenId)}
+                className="w-full bg-industrial-bg border border-industrial-border rounded-xl p-3.5 text-white font-mono font-bold text-sm focus:border-industrial-accent focus:outline-none cursor-pointer"
+              >
+                {availableOvens.map(o => (
+                  <option key={o.id} value={o.id} className="bg-industrial-card text-white py-2">
+                    {o.name} {o.id === ovenId ? '(Forno Atual)' : ''}
+                  </option>
+                ))}
+              </select>
+            </div>
+
             {/* Operator Select */}
             <div>
               <label className="block text-xs font-bold text-industrial-textSecondary uppercase tracking-wider mb-1.5 flex items-center gap-2">
@@ -78,10 +103,10 @@ export const NewRoastModal: React.FC<NewRoastModalProps> = ({
               <select
                 value={selectedOperatorId}
                 onChange={(e) => setSelectedOperatorId(e.target.value)}
-                className="w-full bg-industrial-bg border border-industrial-border rounded-xl p-3.5 text-white font-semibold text-sm focus:border-industrial-accent focus:outline-none"
+                className="w-full bg-industrial-bg border border-industrial-border rounded-xl p-3.5 text-white font-semibold text-sm focus:border-industrial-accent focus:outline-none cursor-pointer"
               >
                 {users.filter(u => u.role === 'operator').map(u => (
-                  <option key={u.id} value={u.id} className="bg-industrial-card text-white">
+                  <option key={u.id} value={u.id} className="bg-industrial-card text-white py-1">
                     {u.name} — {u.shift}
                   </option>
                 ))}
