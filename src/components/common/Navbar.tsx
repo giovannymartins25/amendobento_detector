@@ -26,7 +26,7 @@ interface NavbarProps {
 }
 
 export const Navbar: React.FC<NavbarProps> = ({ activeTab, setActiveTab }) => {
-  const { currentUser, logout, isAdmin } = useAuth();
+  const { currentUser, logout, isAdmin, users, loginAs } = useAuth();
   const { alerts } = useRoast();
 
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
@@ -229,22 +229,38 @@ export const Navbar: React.FC<NavbarProps> = ({ activeTab, setActiveTab }) => {
 
         {/* User Profile Badge & Actions */}
         <div className="flex items-center gap-3">
-          <div
-            onClick={() => setIsProfileModalOpen(true)}
-            className="flex items-center gap-2 bg-industrial-bg px-3 py-1.5 rounded-xl border border-industrial-border cursor-pointer hover:border-industrial-accent/50 transition-all"
-          >
-            {isAdmin ? (
-              <ShieldCheck className="w-4 h-4 text-blue-400" />
-            ) : (
-              <UserCheck className="w-4 h-4 text-emerald-400" />
-            )}
-            <div className="text-xs font-bold text-white">
-              {currentUser.name}
-              <span className={`block text-[9px] uppercase tracking-wider ${isAdmin ? 'text-blue-400' : 'text-emerald-400'}`}>
-                {isAdmin ? 'ADMIN / SUPERVISÃO' : 'OPERADOR'}
-              </span>
+          {!isAdmin ? (
+            <div className="flex items-center gap-2 bg-industrial-bg px-3 py-1.5 rounded-xl border border-industrial-border">
+              <UserCheck className="w-4 h-4 text-emerald-400 shrink-0" />
+              <div className="flex flex-col">
+                <span className="text-[9px] uppercase tracking-wider text-emerald-400 font-extrabold">OPERADOR ATIVO</span>
+                <select
+                  value={currentUser.id}
+                  onChange={(e) => loginAs(e.target.value)}
+                  className="bg-transparent text-xs font-bold text-white focus:outline-none cursor-pointer pr-1"
+                >
+                  {users.filter(u => u.role === 'operator').map(op => (
+                    <option key={op.id} value={op.id} className="bg-industrial-card text-white py-1">
+                      {op.name} ({op.shift?.split(' ')[0]})
+                    </option>
+                  ))}
+                </select>
+              </div>
             </div>
-          </div>
+          ) : (
+            <div
+              onClick={() => setIsProfileModalOpen(true)}
+              className="flex items-center gap-2 bg-industrial-bg px-3 py-1.5 rounded-xl border border-industrial-border cursor-pointer hover:border-industrial-accent/50 transition-all"
+            >
+              <ShieldCheck className="w-4 h-4 text-blue-400" />
+              <div className="text-xs font-bold text-white">
+                {currentUser.name}
+                <span className="block text-[9px] uppercase tracking-wider text-blue-400">
+                  ADMIN / SUPERVISÃO
+                </span>
+              </div>
+            </div>
+          )}
 
           <button
             onClick={logout}

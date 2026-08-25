@@ -26,11 +26,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   }, [isAuthenticated]);
 
   const loginAs = (userIdentifier: string, password?: string): boolean => {
-    // Standard password required is "123"
-    if (password !== undefined && password !== '123') {
-      return false;
-    }
-
     const cleanInput = userIdentifier.trim().toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
     if (!cleanInput) return false;
 
@@ -38,21 +33,24 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       const cleanName = u.name.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
       const cleanId = u.id.toLowerCase();
       
-      if (cleanInput === 'fabio' || cleanInput === 'admin' || cleanInput === 'fabio adm') {
+      if (cleanInput === 'fabio' || cleanInput === 'admin' || cleanInput === 'fabio adm' || cleanInput === 'admin-1') {
         return u.role === 'admin';
       }
-      if (cleanInput === 'joao' || cleanInput === 'joao silva') {
-        return u.id === 'op-1';
-      }
-      return cleanName.includes(cleanInput) || cleanId === cleanInput || u.id === userIdentifier;
+      return u.id === userIdentifier || cleanId === cleanInput || cleanName.includes(cleanInput);
     });
 
-    if (found) {
-      setCurrentUser(found);
-      setIsAuthenticated(true);
-      return true;
+    if (!found) return false;
+
+    // Admin login requires password '123'
+    if (found.role === 'admin') {
+      if (password !== '123') {
+        return false;
+      }
     }
-    return false;
+
+    setCurrentUser(found);
+    setIsAuthenticated(true);
+    return true;
   };
 
   const logout = () => {

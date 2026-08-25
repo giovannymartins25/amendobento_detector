@@ -1,31 +1,46 @@
 import React, { useState } from 'react';
 import { useAuth } from '../../contexts/AuthContext';
-import { Flame, Lock, User as UserIcon, LogIn, Eye, EyeOff, ShieldCheck, AlertCircle } from 'lucide-react';
+import { Flame, Lock, User as UserIcon, UserCheck, ShieldCheck, Eye, EyeOff, AlertCircle, LogIn } from 'lucide-react';
 
 export const LoginPage: React.FC = () => {
-  const { loginAs } = useAuth();
-  const [username, setUsername] = useState<string>('');
-  const [password, setPassword] = useState<string>('');
+  const { loginAs, users } = useAuth();
+  const [activeMode, setActiveMode] = useState<'operator' | 'admin'>('operator');
+  
+  // Operator selection state
+  const operatorUsers = users.filter(u => u.role === 'operator');
+  const [selectedOperatorId, setSelectedOperatorId] = useState<string>(operatorUsers[0]?.id || 'op-1');
+
+  // Admin login state
+  const [adminUsername, setAdminUsername] = useState<string>('fabio');
+  const [adminPassword, setAdminPassword] = useState<string>('');
   const [showPassword, setShowPassword] = useState<boolean>(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleOperatorLogin = (e: React.FormEvent) => {
+    e.preventDefault();
+    setErrorMsg(null);
+    if (!selectedOperatorId) {
+      setErrorMsg('Por favor, selecione um operador.');
+      return;
+    }
+    const success = loginAs(selectedOperatorId);
+    if (!success) {
+      setErrorMsg('Não foi possível realizar o acesso do operador.');
+    }
+  };
+
+  const handleAdminLogin = (e: React.FormEvent) => {
     e.preventDefault();
     setErrorMsg(null);
 
-    if (!username.trim()) {
-      setErrorMsg('Por favor, informe seu nome de usuário.');
+    if (!adminPassword.trim()) {
+      setErrorMsg('Por favor, informe a senha de acesso do Administrador.');
       return;
     }
 
-    if (!password.trim()) {
-      setErrorMsg('Por favor, informe a senha de acesso.');
-      return;
-    }
-
-    const success = loginAs(username.trim(), password.trim());
+    const success = loginAs(adminUsername.trim() || 'fabio', adminPassword.trim());
     if (!success) {
-      setErrorMsg('Usuário ou senha incorretos! Tente usuário: "joao" ou "fabio" e senha: "123"');
+      setErrorMsg('Senha de administrador incorreta! (Senha padrão: 123)');
     }
   };
 
@@ -50,91 +65,181 @@ export const LoginPage: React.FC = () => {
           </div>
         </div>
 
-        {/* Login Form Box */}
+        {/* Mode Selector Switcher */}
+        <div className="grid grid-cols-2 gap-2 bg-industrial-card p-1.5 rounded-2xl border border-industrial-border shadow-md">
+          <button
+            type="button"
+            onClick={() => {
+              setActiveMode('operator');
+              setErrorMsg(null);
+            }}
+            className={`flex items-center justify-center gap-2 py-2.5 px-3 rounded-xl text-xs font-extrabold uppercase tracking-wider transition-all ${
+              activeMode === 'operator'
+                ? 'bg-emerald-600 text-white shadow-lg'
+                : 'text-industrial-textMuted hover:text-white hover:bg-industrial-bg'
+            }`}
+          >
+            <UserCheck className="w-4 h-4" />
+            Operador
+          </button>
+
+          <button
+            type="button"
+            onClick={() => {
+              setActiveMode('admin');
+              setErrorMsg(null);
+            }}
+            className={`flex items-center justify-center gap-2 py-2.5 px-3 rounded-xl text-xs font-extrabold uppercase tracking-wider transition-all ${
+              activeMode === 'admin'
+                ? 'bg-blue-600 text-white shadow-lg'
+                : 'text-industrial-textMuted hover:text-white hover:bg-industrial-bg'
+            }`}
+          >
+            <ShieldCheck className="w-4 h-4" />
+            Admin / Supervisão
+          </button>
+        </div>
+
+        {/* Form Box */}
         <div className="bg-industrial-card border border-industrial-border rounded-3xl p-6 sm:p-8 shadow-2xl space-y-6">
-          <div className="border-b border-industrial-border pb-4">
-            <h2 className="text-lg font-bold text-white font-mono flex items-center gap-2">
-              <LogIn className="w-5 h-5 text-industrial-accent" />
-              ACESSO AO SISTEMA
-            </h2>
-            <p className="text-xs text-industrial-textMuted mt-0.5">
-              Informe seu usuário e senha de acesso
-            </p>
-          </div>
+          
+          {/* OPERATOR LOGIN MODE */}
+          {activeMode === 'operator' && (
+            <form onSubmit={handleOperatorLogin} className="space-y-5">
+              <div className="border-b border-industrial-border pb-4">
+                <h2 className="text-lg font-bold text-white font-mono flex items-center gap-2">
+                  <UserCheck className="w-5 h-5 text-emerald-400" />
+                  ACESSO DE OPERADOR
+                </h2>
+                <p className="text-xs text-industrial-textMuted mt-0.5">
+                  Selecione qual operador você é para acessar o sistema
+                </p>
+              </div>
 
-          <form onSubmit={handleSubmit} className="space-y-4">
-            
-            {/* Username Input */}
-            <div>
-              <label className="block text-xs font-bold text-industrial-textSecondary uppercase tracking-wider mb-2 flex items-center gap-2">
-                <UserIcon className="w-4 h-4 text-industrial-accent" />
-                Nome de Usuário
-              </label>
-              <input
-                type="text"
-                required
-                value={username}
-                onChange={e => {
-                  setUsername(e.target.value);
-                  setErrorMsg(null);
-                }}
-                placeholder="Digite seu usuário (ex: joao, fabio)"
-                className="w-full bg-industrial-bg border border-industrial-border rounded-xl py-3.5 px-4 text-white text-sm focus:border-industrial-accent focus:outline-none transition-all"
-              />
-            </div>
-
-            {/* Password Input */}
-            <div>
-              <label className="block text-xs font-bold text-industrial-textSecondary uppercase tracking-wider mb-2 flex items-center gap-2">
-                <Lock className="w-4 h-4 text-emerald-400" />
-                Senha
-              </label>
-              <div className="relative">
-                <input
-                  type={showPassword ? 'text' : 'password'}
-                  required
-                  value={password}
+              <div>
+                <label className="block text-xs font-bold text-industrial-textSecondary uppercase tracking-wider mb-2 flex items-center gap-2">
+                  <UserIcon className="w-4 h-4 text-emerald-400" />
+                  Selecione o Operador
+                </label>
+                <select
+                  value={selectedOperatorId}
                   onChange={e => {
-                    setPassword(e.target.value);
+                    setSelectedOperatorId(e.target.value);
                     setErrorMsg(null);
                   }}
-                  placeholder="Digite sua senha"
-                  className="w-full bg-industrial-bg border border-industrial-border rounded-xl py-3.5 pl-4 pr-11 text-white text-sm font-mono focus:border-industrial-accent focus:outline-none transition-all"
-                />
-                <button
-                  type="button"
-                  onClick={() => setShowPassword(!showPassword)}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 p-1 text-industrial-textMuted hover:text-white"
+                  className="w-full bg-industrial-bg border border-industrial-border rounded-xl py-3.5 px-4 text-white text-sm font-semibold focus:border-emerald-500 focus:outline-none transition-all cursor-pointer"
                 >
-                  {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-                </button>
+                  {operatorUsers.map(op => (
+                    <option key={op.id} value={op.id} className="bg-industrial-card text-white py-2">
+                      👷 {op.name} — {op.shift}
+                    </option>
+                  ))}
+                </select>
               </div>
-            </div>
 
-            {/* Hint Box */}
-            <div className="p-3 bg-industrial-bg/80 border border-industrial-border rounded-xl text-[11px] text-industrial-textMuted space-y-1 font-mono">
-              <div>👤 <strong className="text-white">Operador:</strong> <code className="text-emerald-400 font-bold">joao</code> • Senha: <code className="text-emerald-400 font-bold">123</code></div>
-              <div>👑 <strong className="text-white">Admin:</strong> <code className="text-blue-400 font-bold">fabio</code> • Senha: <code className="text-blue-400 font-bold">123</code></div>
-            </div>
-
-            {/* Error Message Alert */}
-            {errorMsg && (
-              <div className="p-3 bg-rose-950/80 border border-rose-600/60 rounded-xl text-xs text-rose-300 flex items-center gap-2 font-medium animate-fade-in">
-                <AlertCircle className="w-4 h-4 text-rose-400 shrink-0" />
-                <span>{errorMsg}</span>
+              {/* Info banner */}
+              <div className="p-3.5 bg-emerald-950/40 border border-emerald-600/30 rounded-xl text-xs text-emerald-300 flex items-start gap-2.5 font-medium">
+                <UserCheck className="w-4 h-4 text-emerald-400 shrink-0 mt-0.5" />
+                <span>Acesso simplificado de chão de fábrica. Nenhuma senha é necessária para operadores.</span>
               </div>
-            )}
 
-            {/* Submit Button */}
-            <button
-              type="submit"
-              className="w-full h-13 bg-gradient-to-r from-industrial-accent to-blue-600 hover:from-blue-600 hover:to-indigo-600 text-white font-extrabold rounded-xl shadow-scada-glow flex items-center justify-center gap-2 text-sm uppercase tracking-wider active:scale-98 transition-all"
-            >
-              <ShieldCheck className="w-5 h-5" />
-              ENTRAR
-            </button>
+              {errorMsg && (
+                <div className="p-3 bg-rose-950/80 border border-rose-600/60 rounded-xl text-xs text-rose-300 flex items-center gap-2 font-medium animate-fade-in">
+                  <AlertCircle className="w-4 h-4 text-rose-400 shrink-0" />
+                  <span>{errorMsg}</span>
+                </div>
+              )}
 
-          </form>
+              <button
+                type="submit"
+                className="w-full h-13 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-teal-600 hover:to-emerald-500 text-white font-extrabold rounded-xl shadow-scada-glow flex items-center justify-center gap-2 text-sm uppercase tracking-wider active:scale-98 transition-all"
+              >
+                <LogIn className="w-5 h-5" />
+                ENTRAR NO SISTEMA
+              </button>
+            </form>
+          )}
+
+          {/* ADMIN LOGIN MODE */}
+          {activeMode === 'admin' && (
+            <form onSubmit={handleAdminLogin} className="space-y-5">
+              <div className="border-b border-industrial-border pb-4">
+                <h2 className="text-lg font-bold text-white font-mono flex items-center gap-2">
+                  <ShieldCheck className="w-5 h-5 text-blue-400" />
+                  ACESSO DE ADMINISTRADOR
+                </h2>
+                <p className="text-xs text-industrial-textMuted mt-0.5">
+                  Área restrita de gestão. Requer senha de acesso.
+                </p>
+              </div>
+
+              <div>
+                <label className="block text-xs font-bold text-industrial-textSecondary uppercase tracking-wider mb-2 flex items-center gap-2">
+                  <UserIcon className="w-4 h-4 text-blue-400" />
+                  Administrador
+                </label>
+                <input
+                  type="text"
+                  required
+                  value={adminUsername}
+                  onChange={e => {
+                    setAdminUsername(e.target.value);
+                    setErrorMsg(null);
+                  }}
+                  placeholder="Nome do usuário admin (ex: fabio)"
+                  className="w-full bg-industrial-bg border border-industrial-border rounded-xl py-3.5 px-4 text-white text-sm focus:border-blue-500 focus:outline-none transition-all"
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-bold text-industrial-textSecondary uppercase tracking-wider mb-2 flex items-center gap-2">
+                  <Lock className="w-4 h-4 text-blue-400" />
+                  Senha de Administrador
+                </label>
+                <div className="relative">
+                  <input
+                    type={showPassword ? 'text' : 'password'}
+                    required
+                    value={adminPassword}
+                    onChange={e => {
+                      setAdminPassword(e.target.value);
+                      setErrorMsg(null);
+                    }}
+                    placeholder="Digite sua senha"
+                    className="w-full bg-industrial-bg border border-industrial-border rounded-xl py-3.5 pl-4 pr-11 text-white text-sm font-mono focus:border-blue-500 focus:outline-none transition-all"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowPassword(!showPassword)}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 p-1 text-industrial-textMuted hover:text-white"
+                  >
+                    {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                  </button>
+                </div>
+              </div>
+
+              {/* Hint Box */}
+              <div className="p-3 bg-industrial-bg/80 border border-industrial-border rounded-xl text-[11px] text-industrial-textMuted font-mono">
+                👑 <strong className="text-white">Admin:</strong> <code className="text-blue-400 font-bold">fabio</code> • Senha: <code className="text-blue-400 font-bold">123</code>
+              </div>
+
+              {errorMsg && (
+                <div className="p-3 bg-rose-950/80 border border-rose-600/60 rounded-xl text-xs text-rose-300 flex items-center gap-2 font-medium animate-fade-in">
+                  <AlertCircle className="w-4 h-4 text-rose-400 shrink-0" />
+                  <span>{errorMsg}</span>
+                </div>
+              )}
+
+              <button
+                type="submit"
+                className="w-full h-13 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-indigo-600 hover:to-blue-500 text-white font-extrabold rounded-xl shadow-scada-glow flex items-center justify-center gap-2 text-sm uppercase tracking-wider active:scale-98 transition-all"
+              >
+                <ShieldCheck className="w-5 h-5" />
+                ENTRAR COMO ADMIN
+              </button>
+            </form>
+          )}
+
         </div>
 
         {/* Footer info */}
@@ -146,3 +251,4 @@ export const LoginPage: React.FC = () => {
     </div>
   );
 };
+
