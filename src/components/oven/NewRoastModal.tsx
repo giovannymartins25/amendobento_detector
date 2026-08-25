@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { OvenId } from '../../types/roast';
 import { useAuth } from '../../contexts/AuthContext';
 import { useRoast } from '../../contexts/RoastContext';
@@ -20,19 +20,23 @@ export const NewRoastModal: React.FC<NewRoastModalProps> = ({
   const { users, currentUser } = useAuth();
   const { ovens, startRoast } = useRoast();
 
-  // Filter available active ovens. If suggestDifferentOven is true, default to a different oven than current ovenId
   const availableOvens = ovens.filter(o => o.status === 'active');
-  const initialOvenId = (() => {
-    if (suggestDifferentOven && ovenId) {
-      const differentOvens = availableOvens.filter(o => o.id !== ovenId);
-      if (differentOvens.length > 0) return differentOvens[0].id;
-    }
-    return ovenId || (availableOvens[0]?.id ?? 1);
-  })();
-
-  const [selectedOvenId, setSelectedOvenId] = useState<OvenId>(initialOvenId);
+  const [selectedOvenId, setSelectedOvenId] = useState<OvenId>(ovenId || 1);
   const [selectedOperatorId, setSelectedOperatorId] = useState(currentUser.id);
   const [targetQuantityKg, setTargetQuantityKg] = useState<number>(50);
+
+  useEffect(() => {
+    if (ovenId !== null) {
+      if (suggestDifferentOven) {
+        const differentOvens = availableOvens.filter(o => o.id !== ovenId);
+        if (differentOvens.length > 0) {
+          setSelectedOvenId(differentOvens[0].id);
+          return;
+        }
+      }
+      setSelectedOvenId(ovenId);
+    }
+  }, [ovenId, suggestDifferentOven]);
 
   if (ovenId === null) return null;
 
