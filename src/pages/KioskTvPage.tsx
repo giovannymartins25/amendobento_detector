@@ -3,9 +3,14 @@ import { useRoast } from '../contexts/RoastContext';
 import { analyticsEngine } from '../services/analyticsEngine';
 import { audioAlarmService } from '../services/audioAlarmService';
 import { formatSecondsToMMSS, formatDateTime, getStageBadgeStyles, getStageLabel } from '../utils/formatters';
-import { Tv, User, Award, Bell, BellOff, AlertTriangle, Flame } from 'lucide-react';
+import { OvenId } from '../types/roast';
+import { Tv, User, Award, Bell, BellOff, AlertTriangle, Flame, Eye } from 'lucide-react';
 
-export const KioskTvPage: React.FC = () => {
+interface KioskTvPageProps {
+  onNavigateToRoast?: (ovenId: OvenId) => void;
+}
+
+export const KioskTvPage: React.FC<KioskTvPageProps> = ({ onNavigateToRoast }) => {
   const { ovens, activeRoasts } = useRoast();
   const [now, setNow] = useState(new Date());
   const [isAudioMuted, setIsAudioMuted] = useState(audioAlarmService.getIsMuted());
@@ -56,9 +61,24 @@ export const KioskTvPage: React.FC = () => {
     return isTimeNear || isStageNear;
   });
 
-  // Control alarm sound
+  // Check if Forno 2 is at critical urgent red stage (10s or less remaining)
+  const anyOvenUrgentRed = activeOvens.some(oven => {
+    const session = activeRoasts[oven.id];
+    if (!session || session.status !== 'roasting') return false;
+    const estimate = analyticsEngine.getPredictiveEstimate(oven.id, session.durationSeconds, session.startTime);
+    return oven.id === 2 && estimate.remainingSeconds <= 10;
+  });
+
+  // Control alarm sound (Urgent loud alarm vs Standard alarm)
   useEffect(() => {
-    if (anyOvenNearCompletion && !isAudioMuted) {
+    if (isAudioMuted) {
+      audioAlarmService.stopAlarm();
+      return;
+    }
+
+    if (anyOvenUrgentRed) {
+      audioAlarmService.startUrgentAlarmPattern();
+    } else if (anyOvenNearCompletion) {
       audioAlarmService.startAlarmPattern();
     } else {
       audioAlarmService.stopAlarm();
@@ -67,7 +87,7 @@ export const KioskTvPage: React.FC = () => {
     return () => {
       audioAlarmService.stopAlarm();
     };
-  }, [anyOvenNearCompletion, isAudioMuted]);
+  }, [anyOvenNearCompletion, anyOvenUrgentRed, isAudioMuted]);
 
   return (
     <div className="space-y-6 pb-16">
@@ -94,7 +114,9 @@ export const KioskTvPage: React.FC = () => {
             className={`px-4 py-2.5 rounded-2xl border font-mono font-bold text-xs flex items-center gap-2 transition-all ${
               isAudioMuted
                 ? 'bg-industrial-bg border-industrial-border text-industrial-textMuted hover:text-white'
-                : 'bg-amber-500/20 border-amber-500/50 text-amber-300 shadow-[0_0_15px_rgba(245,158,11,0.3)] animate-pulse'
+                : anyOvenUrgentRed
+                  ? 'bg-rose-500/30 border-rose-500 text-rose-200 shadow-[0_0_20px_rgba(244,63,94,0.6)] animate-pulse'
+                  : 'bg-amber-500/20 border-amber-500/50 text-amber-300 shadow-[0_0_15px_rgba(245,158,11,0.3)] animate-pulse'
             }`}
           >
             {isAudioMuted ? (
@@ -105,7 +127,7 @@ export const KioskTvPage: React.FC = () => {
             ) : (
               <>
                 <Bell className="w-4 h-4 text-amber-400 animate-bounce" />
-                <span>ALARME: ATIVADO</span>
+                <span>ALARME: ATIVADO {anyOvenUrgentRed ? '(SOM ALTO URGENTE)' : ''}</span>
               </>
             )}
           </button>
@@ -117,8 +139,22 @@ export const KioskTvPage: React.FC = () => {
         </div>
       </div>
 
-      {/* Visual Alarm Banner on Painel TV when near completion */}
-      {anyOvenNearCompletion && (
+      {/* Visual Alarm Banner on Painel TV when near completion or urgent red */}
+      {anyOvenUrgentRed ? (
+        <div className="bg-rose-950/95 border-2 border-rose-500 text-rose-200 p-4 sm:p-5 rounded-3xl flex items-center justify-between gap-4 shadow-[0_0_60px_rgba(244,63,94,0.8)] animate-pulse">
+          <div className="flex items-center gap-3 text-center sm:text-left">
+            <AlertTriangle className="w-9 h-9 text-rose-400 animate-bounce shrink-0" />
+            <div>
+              <h3 className="font-mono font-black text-xl text-rose-100 uppercase tracking-wider">
+                🚨 ALERTA VERMELHO CRÍTICO: FALTA APENAS 10 SEGUNDOS (FORNO 2)
+              </h3>
+              <p className="text-xs text-rose-300 font-bold mt-0.5">
+                Atenção máxima! Forno 2 atingiu a contagem regressiva final do ponto de torra.
+              </p>
+            </div>
+          </div>
+        </div>
+      ) : anyOvenNearCompletion ? (
         <div className="bg-amber-950/90 border-2 border-amber-500 text-amber-300 p-4 sm:p-5 rounded-3xl flex items-center justify-between gap-4 shadow-[0_0_40px_rgba(245,158,11,0.6)] animate-pulse">
           <div className="flex items-center gap-3 text-center sm:text-left">
             <AlertTriangle className="w-8 h-8 text-amber-400 animate-bounce shrink-0" />
@@ -132,7 +168,7 @@ export const KioskTvPage: React.FC = () => {
             </div>
           </div>
         </div>
-      )}
+      ) : null}
 
       {/* Grid of Ovens Side-by-Side */}
       {activeOvens.length === 0 ? (
@@ -159,6 +195,9 @@ export const KioskTvPage: React.FC = () => {
           const isRoasting = session && session.status === 'roasting';
 
           const estimate = analyticsEngine.getPredictiveEstimate(ovenId, session?.durationSeconds || 0, session?.startTime);
+          const remainingSeconds = estimate.remainingSeconds;
+
+          const isUrgentRed = isRoasting && ovenId === 2 && remainingSeconds <= 10;
           const alertThreshold = ovenId === 2 ? 50 : 120;
           const isTimeNear = isRoasting && session.durationSeconds >= (estimate.estimatedTotalDurationSeconds - alertThreshold);
 
@@ -173,22 +212,26 @@ export const KioskTvPage: React.FC = () => {
             <div
               key={ovenId}
               className={`bg-industrial-card border rounded-3xl p-6 shadow-2xl flex flex-col justify-between space-y-6 transition-all ${
-                isNearCompletion
-                  ? 'border-2 border-amber-500 bg-gradient-to-b from-amber-950/40 via-industrial-card to-industrial-card shadow-[0_0_35px_rgba(245,158,11,0.6)] animate-pulse'
-                  : isRoasting
-                    ? 'border-emerald-500/60 bg-gradient-to-b from-industrial-card to-emerald-950/20 shadow-success-glow'
-                    : 'border-industrial-border'
+                isUrgentRed
+                  ? 'border-2 border-rose-500 bg-gradient-to-b from-rose-950/70 via-industrial-card to-industrial-card shadow-[0_0_50px_rgba(244,63,94,0.8)] animate-pulse'
+                  : isNearCompletion
+                    ? 'border-2 border-amber-500 bg-gradient-to-b from-amber-950/40 via-industrial-card to-industrial-card shadow-[0_0_35px_rgba(245,158,11,0.6)] animate-pulse'
+                    : isRoasting
+                      ? 'border-emerald-500/60 bg-gradient-to-b from-industrial-card to-emerald-950/20 shadow-success-glow'
+                      : 'border-industrial-border'
               }`}
             >
               {/* Top Oven Badge */}
               <div className="flex items-center justify-between border-b border-industrial-border pb-4">
                 <div className="flex items-center gap-3">
                   <div className={`w-14 h-14 rounded-2xl flex items-center justify-center font-mono font-black text-2xl ${
-                    isNearCompletion
-                      ? 'bg-amber-500/30 text-amber-300 border border-amber-500/60 animate-bounce'
-                      : isRoasting
-                        ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/40'
-                        : 'bg-industrial-bg text-industrial-textMuted border border-industrial-border'
+                    isUrgentRed
+                      ? 'bg-rose-500/30 text-rose-300 border border-rose-500/60 animate-bounce'
+                      : isNearCompletion
+                        ? 'bg-amber-500/30 text-amber-300 border border-amber-500/60 animate-bounce'
+                        : isRoasting
+                          ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/40'
+                          : 'bg-industrial-bg text-industrial-textMuted border border-industrial-border'
                   }`}>
                     F{ovenId}
                   </div>
@@ -202,7 +245,12 @@ export const KioskTvPage: React.FC = () => {
                 </div>
 
                 {/* Status LED */}
-                {isNearCompletion ? (
+                {isUrgentRed ? (
+                  <div className="flex items-center gap-2 bg-rose-950/95 border border-rose-500/90 px-3.5 py-1.5 rounded-full">
+                    <span className="w-3 h-3 rounded-full bg-rose-500 animate-ping" />
+                    <span className="text-xs font-black text-rose-300 tracking-wider">🔴 URGENTE: FALTA 10s!</span>
+                  </div>
+                ) : isNearCompletion ? (
                   <div className="flex items-center gap-2 bg-amber-950/90 border border-amber-500/80 px-3.5 py-1.5 rounded-full">
                     <span className="w-3 h-3 rounded-full bg-amber-400 animate-ping" />
                     <span className="text-xs font-black text-amber-300 tracking-wider">QUASE PRONTO!</span>
@@ -224,11 +272,13 @@ export const KioskTvPage: React.FC = () => {
               <div className="bg-industrial-bg border border-industrial-border p-6 rounded-2xl text-center space-y-1 relative">
                 <span className="text-xs font-bold text-industrial-textMuted uppercase tracking-wider block">TEMPO DECORRIDO</span>
                 <span className={`font-mono text-5xl sm:text-6xl font-black tracking-tight ${
-                  isNearCompletion
-                    ? 'text-amber-400 drop-shadow-[0_0_20px_rgba(245,158,11,0.6)]'
-                    : isRoasting
-                      ? 'text-emerald-400 drop-shadow-[0_0_20px_rgba(16,185,129,0.4)]'
-                      : 'text-industrial-textMuted'
+                  isUrgentRed
+                    ? 'text-rose-400 drop-shadow-[0_0_25px_rgba(244,63,94,0.8)]'
+                    : isNearCompletion
+                      ? 'text-amber-400 drop-shadow-[0_0_20px_rgba(245,158,11,0.6)]'
+                      : isRoasting
+                        ? 'text-emerald-400 drop-shadow-[0_0_20px_rgba(16,185,129,0.4)]'
+                        : 'text-industrial-textMuted'
                 }`}>
                   {isRoasting ? formatSecondsToMMSS(session.durationSeconds) : '00:00'}
                 </span>
@@ -240,15 +290,20 @@ export const KioskTvPage: React.FC = () => {
                   </div>
                 )}
 
-                {isNearCompletion && (
+                {isUrgentRed ? (
+                  <div className="mt-2 text-xs font-black text-rose-300 flex items-center justify-center gap-1.5 font-mono animate-pulse">
+                    <AlertTriangle className="w-4 h-4 text-rose-400" />
+                    🚨 CRÍTICO: FALTA APENAS {Math.max(0, remainingSeconds)} SEGUNDOS!
+                  </div>
+                ) : isNearCompletion ? (
                   <div className="mt-2 text-xs font-bold text-amber-300 flex items-center justify-center gap-1.5 font-mono animate-pulse">
                     <AlertTriangle className="w-4 h-4" />
                     {ovenId === 2
-                      ? `ATENÇÃO: FALTA ~${Math.max(0, estimate.estimatedTotalDurationSeconds - session.durationSeconds)} SEGUNDOS (FORNO 2 MODO TESTE 1 MIN)`
-                      : `ATENÇÃO: FALTA ~${Math.ceil((estimate.estimatedTotalDurationSeconds - session.durationSeconds) / 60)} MINUTOS (ESTIMATIVA AJUSTADA)`
+                      ? `ATENÇÃO: FALTA ~${Math.max(0, remainingSeconds)} SEGUNDOS (FORNO 2 MODO TESTE 1 MIN)`
+                      : `ATENÇÃO: FALTA ~${Math.ceil(remainingSeconds / 60)} MINUTOS (ESTIMATIVA AJUSTADA)`
                     }
                   </div>
-                )}
+                ) : null}
               </div>
 
               {/* Latest AI Classification Badge */}
@@ -270,6 +325,17 @@ export const KioskTvPage: React.FC = () => {
                   <span className="text-xs text-industrial-textMuted italic">Aguardando...</span>
                 )}
               </div>
+
+              {/* Action Button: Visualizar Torra (Active Roast Page) */}
+              {isRoasting && onNavigateToRoast && (
+                <button
+                  onClick={() => onNavigateToRoast(ovenId)}
+                  className="w-full py-3.5 bg-gradient-to-r from-industrial-accent to-blue-600 hover:from-blue-600 hover:to-indigo-600 text-white font-extrabold text-xs rounded-2xl shadow-scada-glow flex items-center justify-center gap-2 uppercase tracking-wider transition-all active:scale-98"
+                >
+                  <Eye className="w-4 h-4" />
+                  <span>👁 Visualizar Torra (Forno {ovenId})</span>
+                </button>
+              )}
 
             </div>
           );

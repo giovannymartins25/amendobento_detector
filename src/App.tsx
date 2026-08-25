@@ -57,7 +57,7 @@ export const AppContent: React.FC = () => {
         )}
 
         {isAdmin && activeTab === 'kiosk' && (
-          <KioskTvPage />
+          <KioskTvPage onNavigateToRoast={handleNavigateToRoast} />
         )}
 
         {isAdmin && activeTab === 'alerts' && (
