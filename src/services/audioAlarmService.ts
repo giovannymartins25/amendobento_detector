@@ -4,7 +4,7 @@ class AudioAlarmService {
   private isMuted: boolean = false;
   private alarmInterval: number | null = null;
 
-  private initContext() {
+  public initContext() {
     if (!this.audioCtx) {
       const AudioCtxClass = window.AudioContext || (window as any).webkitAudioContext;
       if (AudioCtxClass) {
@@ -40,7 +40,7 @@ class AudioAlarmService {
       osc.type = 'sine';
       osc.frequency.setValueAtTime(frequency, this.audioCtx.currentTime);
 
-      gain.gain.setValueAtTime(0.15, this.audioCtx.currentTime);
+      gain.gain.setValueAtTime(0.2, this.audioCtx.currentTime);
       gain.gain.exponentialRampToValueAtTime(0.001, this.audioCtx.currentTime + (durationMs / 1000));
 
       osc.connect(gain);
@@ -56,11 +56,15 @@ class AudioAlarmService {
   public startAlarmPattern() {
     if (this.alarmInterval !== null || this.isMuted) return;
 
-    // Double beep every 1.5 seconds
+    // Play initial beep immediately
+    this.playBeep(950, 150);
+    setTimeout(() => this.playBeep(1200, 200), 200);
+
+    // Continuous double beep every 1.0 second until stopAlarm is called
     this.alarmInterval = window.setInterval(() => {
       this.playBeep(950, 150);
       setTimeout(() => this.playBeep(1200, 200), 200);
-    }, 1500);
+    }, 1000);
   }
 
   public stopAlarm() {

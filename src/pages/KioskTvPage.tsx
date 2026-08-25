@@ -17,10 +17,25 @@ export const KioskTvPage: React.FC = () => {
     return () => clearInterval(timer);
   }, []);
 
+  useEffect(() => {
+    const unlockAudio = () => {
+      audioAlarmService.initContext();
+    };
+    window.addEventListener('click', unlockAudio);
+    window.addEventListener('touchstart', unlockAudio);
+    return () => {
+      window.removeEventListener('click', unlockAudio);
+      window.removeEventListener('touchstart', unlockAudio);
+    };
+  }, []);
+
   const toggleMute = () => {
     const nextMuted = !isAudioMuted;
     setIsAudioMuted(nextMuted);
     audioAlarmService.setMuted(nextMuted);
+    if (!nextMuted) {
+      audioAlarmService.initContext();
+    }
   };
 
   // Check if any roasting oven is near ideal completion (for Forno 2: 50s before 60s total, others: 120s before total)
