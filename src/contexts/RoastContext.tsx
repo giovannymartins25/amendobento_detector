@@ -77,19 +77,20 @@ export const RoastProvider: React.FC<{ children: React.ReactNode }> = ({ childre
               setAlerts(currAlerts => [reminderAlert, ...currAlerts]);
             }
 
-            // Check near completion alert (e.g. at ~80% average duration)
-            const stats = analyticsEngine.getOvenStats(ovenId);
-            const avgDuration = stats.avgDurationSeconds || 600;
-            const timeRemaining = avgDuration - newDuration;
+            // Check near completion alert (10s remaining for Forno 2 test mode, 120s for others)
+            const estimate = analyticsEngine.getPredictiveEstimate(ovenId, newDuration, session.startTime);
+            const triggerRemaining = ovenId === 2 ? 10 : 120;
 
-            if (timeRemaining <= 120 && timeRemaining > 118) {
+            if (estimate.remainingSeconds === triggerRemaining) {
               const nearIdealAlert: PredictiveAlert = {
                 id: `near-ideal-${ovenId}-${Date.now()}`,
                 timestamp: new Date().toISOString(),
                 ovenId,
                 severity: 'warning',
                 title: `⏳ Torra Próxima do Ponto Ideal (${oven.name})`,
-                message: `Faltam aproximadamente 2 minutos para atingir a média ideal (${Math.floor(avgDuration / 60)} min).`,
+                message: ovenId === 2
+                  ? `Faltam apenas 10 segundos para finalizar a torra no Forno 2 (Modo Teste 1 min).`
+                  : `Faltam aproximadamente 2 minutos para atingir a média ideal (${Math.floor(estimate.estimatedTotalDurationSeconds / 60)} min).`,
                 read: false,
                 type: 'delay',
               };

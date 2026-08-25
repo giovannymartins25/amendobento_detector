@@ -23,14 +23,14 @@ export const KioskTvPage: React.FC = () => {
     audioAlarmService.setMuted(nextMuted);
   };
 
-  // Check if any roasting oven is near ideal completion (e.g. within 2 min or stage 'quase' / 'ideal')
+  // Check if any roasting oven is near ideal completion (for Forno 2: 10s before 60s total, others: 120s before total)
   const anyOvenNearCompletion = activeOvens.some(oven => {
     const session = activeRoasts[oven.id];
     if (!session || session.status !== 'roasting') return false;
 
-    const stats = analyticsEngine.getOvenStats(oven.id);
-    const avgDuration = stats.avgDurationSeconds || 600;
-    const isTimeNear = session.durationSeconds >= (avgDuration - 120);
+    const estimate = analyticsEngine.getPredictiveEstimate(oven.id, session.durationSeconds, session.startTime);
+    const alertThreshold = oven.id === 2 ? 10 : 120;
+    const isTimeNear = session.durationSeconds >= (estimate.estimatedTotalDurationSeconds - alertThreshold);
 
     const lastAnalysis = session.analyses.length > 0
       ? session.analyses[session.analyses.length - 1]
@@ -102,6 +102,26 @@ export const KioskTvPage: React.FC = () => {
         </div>
       </div>
 
+      {/* Visual Alarm Banner on Painel TV when near completion */}
+      {anyOvenNearCompletion && (
+        <div className="bg-amber-950/90 border-2 border-amber-500 text-amber-300 p-4 sm:p-5 rounded-3xl flex flex-col sm:flex-row items-center justify-between gap-4 shadow-[0_0_40px_rgba(245,158,11,0.6)] animate-pulse">
+          <div className="flex items-center gap-3 text-center sm:text-left">
+            <AlertTriangle className="w-8 h-8 text-amber-400 animate-bounce shrink-0" />
+            <div>
+              <h3 className="font-mono font-black text-lg text-amber-200 uppercase tracking-wider">
+                🚨 ALERTA DE TORRA PRÓXIMA DO PONTO (CHÃO DE FÁBRICA)
+              </h3>
+              <p className="text-xs text-amber-300 font-medium mt-0.5">
+                Aviso disparado! Forno próximo do ponto final de torra.
+              </p>
+            </div>
+          </div>
+          <div className="flex items-center gap-2 bg-amber-500 text-black px-4 py-2 rounded-2xl font-mono font-black text-xs uppercase tracking-wider shadow-lg">
+            <span>ALARME SONORO & VISUAL ATIVO</span>
+          </div>
+        </div>
+      )}
+
       {/* Grid of Ovens Side-by-Side */}
       {activeOvens.length === 0 ? (
         <div className="bg-industrial-card/40 border border-dashed border-industrial-border rounded-3xl p-16 text-center space-y-3">
@@ -127,7 +147,8 @@ export const KioskTvPage: React.FC = () => {
           const isRoasting = session && session.status === 'roasting';
 
           const estimate = analyticsEngine.getPredictiveEstimate(ovenId, session?.durationSeconds || 0, session?.startTime);
-          const isTimeNear = isRoasting && session.durationSeconds >= (estimate.estimatedTotalDurationSeconds - 120);
+          const alertThreshold = ovenId === 2 ? 10 : 120;
+          const isTimeNear = isRoasting && session.durationSeconds >= (estimate.estimatedTotalDurationSeconds - alertThreshold);
 
           const lastAnalysis = session && session.analyses.length > 0
             ? session.analyses[session.analyses.length - 1]
@@ -210,7 +231,10 @@ export const KioskTvPage: React.FC = () => {
                 {isNearCompletion && (
                   <div className="mt-2 text-xs font-bold text-amber-300 flex items-center justify-center gap-1.5 font-mono animate-pulse">
                     <AlertTriangle className="w-4 h-4" />
-                    ATENÇÃO: FALTA ~2 MINUTOS (ESTIMATIVA AJUSTADA)
+                    {ovenId === 2
+                      ? `ATENÇÃO: FALTA ~${Math.max(0, estimate.estimatedTotalDurationSeconds - session.durationSeconds)} SEGUNDOS (FORNO 2 MODO TESTE 1 MIN)`
+                      : `ATENÇÃO: FALTA ~${Math.ceil((estimate.estimatedTotalDurationSeconds - session.durationSeconds) / 60)} MINUTOS (ESTIMATIVA AJUSTADA)`
+                    }
                   </div>
                 )}
               </div>

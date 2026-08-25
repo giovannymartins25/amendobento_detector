@@ -81,6 +81,35 @@ export const analyticsEngine = {
   },
 
   getPredictiveEstimate(ovenId: OvenId, currentSeconds: number, sessionStartTime?: string): PredictiveEstimate {
+    // Modo de Teste especial para o FORNO 2 (Torra de 1 minuto = 60s)
+    if (ovenId === 2) {
+      const expectedTotal = 60; // 1 minuto
+      const remainingSeconds = Math.max(0, expectedTotal - currentSeconds);
+      const progressPercentage = Math.min(100, Math.round((currentSeconds / expectedTotal) * 100));
+      const isOverAverage = currentSeconds > expectedTotal;
+      const deviationPercent = expectedTotal > 0 ? Math.round(((currentSeconds - expectedTotal) / expectedTotal) * 100) : 0;
+
+      let message = '';
+      if (isOverAverage) {
+        message = `⚠️ Torra no Forno 2 ultrapassou a estimativa de teste (1 min).`;
+      } else if (remainingSeconds <= 10) {
+        message = `🟢 ALERTA TESTE (Forno 2): Ponto ideal em ${remainingSeconds}s!`;
+      } else {
+        message = `💡 Forno 2 (Modo Teste 1 min): Faltam ~${remainingSeconds}s para a conclusão.`;
+      }
+
+      return {
+        estimatedTotalDurationSeconds: expectedTotal,
+        remainingSeconds,
+        progressPercentage,
+        message,
+        isOverAverage,
+        deviationPercent,
+        isFirstRoastOfDay: false,
+        coldStartBonusSeconds: 0,
+      };
+    }
+
     const stats = this.getOvenStats(ovenId);
     const firstRoast = this.isFirstRoastOfDay(ovenId, sessionStartTime);
     const coldStartBonusSeconds = firstRoast ? 300 : 0; // +5 minutos (300s) devido a forno frio em temperatura ambiente
