@@ -8,7 +8,8 @@ import { RoastStageProgressBar } from '../components/roast/RoastStageProgressBar
 import { HumanFeedbackButtons } from '../components/aiFeedback/HumanFeedbackButtons';
 import { CameraCaptureModal } from '../components/roast/CameraCaptureModal';
 import { ConfirmModal } from '../components/common/ConfirmModal';
-import { Camera, Upload, Square, User, Award, ArrowLeft, Loader2, Clock, TrendingUp, AlertCircle } from 'lucide-react';
+import { NewRoastModal } from '../components/oven/NewRoastModal';
+import { Camera, Upload, Square, User, Award, ArrowLeft, Loader2, Clock, TrendingUp, AlertCircle, Flame, Play } from 'lucide-react';
 
 interface ActiveRoastPageProps {
   ovenId: OvenId;
@@ -23,6 +24,7 @@ export const ActiveRoastPage: React.FC<ActiveRoastPageProps> = ({ ovenId, onBack
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [latestAnalysis, setLatestAnalysis] = useState<AnalysisResult | null>(null);
   const [isFinishModalOpen, setIsFinishModalOpen] = useState(false);
+  const [isNewRoastModalOpen, setIsNewRoastModalOpen] = useState(false);
 
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const imageRef = useRef<HTMLImageElement>(null);
@@ -130,7 +132,7 @@ export const ActiveRoastPage: React.FC<ActiveRoastPageProps> = ({ ovenId, onBack
   return (
     <div className="space-y-6 pb-44">
       {/* Top Header */}
-      <div className="flex items-center justify-between">
+      <div className="flex items-center justify-between gap-3">
         <button
           onClick={onBack}
           className="flex items-center gap-2 px-3.5 py-2 bg-industrial-card border border-industrial-border rounded-xl text-xs font-bold text-industrial-textSecondary hover:text-white transition-colors"
@@ -139,9 +141,19 @@ export const ActiveRoastPage: React.FC<ActiveRoastPageProps> = ({ ovenId, onBack
           Voltar para Fornos
         </button>
 
-        <div className="flex items-center gap-2 bg-emerald-950/80 border border-emerald-500/50 px-3 py-1 rounded-full">
-          <span className="w-2.5 h-2.5 rounded-full bg-emerald-400 animate-ping" />
-          <span className="text-xs font-bold text-emerald-400 font-mono uppercase tracking-wider">SESSÃO ATIVA</span>
+        <div className="flex items-center gap-2 sm:gap-3">
+          <button
+            onClick={() => setIsNewRoastModalOpen(true)}
+            className="flex items-center gap-2 px-3.5 py-2 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white font-extrabold text-xs rounded-xl shadow-success-glow transition-all active:scale-95 uppercase tracking-wider"
+          >
+            <Flame className="w-4 h-4 fill-current animate-pulse" />
+            <span>Iniciar Nova Torra</span>
+          </button>
+
+          <div className="flex items-center gap-2 bg-emerald-950/80 border border-emerald-500/50 px-3 py-1.5 rounded-full">
+            <span className="w-2.5 h-2.5 rounded-full bg-emerald-400 animate-ping" />
+            <span className="text-xs font-bold text-emerald-400 font-mono uppercase tracking-wider">SESSÃO ATIVA</span>
+          </div>
         </div>
       </div>
 
@@ -154,9 +166,18 @@ export const ActiveRoastPage: React.FC<ActiveRoastPageProps> = ({ ovenId, onBack
             </div>
             <div>
               <h2 className="font-extrabold text-xl text-white font-mono">FORNO {ovenId} — TORRA EM ANDAMENTO</h2>
-              <div className="flex items-center justify-center sm:justify-start gap-2 text-xs text-industrial-textSecondary mt-0.5">
-                <User className="w-3.5 h-3.5 text-blue-400" />
-                <span>Operador: <strong className="text-white">{session.operatorName}</strong></span>
+              <div className="flex flex-wrap items-center justify-center sm:justify-start gap-2.5 text-xs text-industrial-textSecondary mt-1">
+                <div className="flex items-center gap-1.5">
+                  <User className="w-3.5 h-3.5 text-blue-400" />
+                  <span>Operador: <strong className="text-white">{session.operatorName}</strong></span>
+                </div>
+                <button
+                  onClick={() => setIsNewRoastModalOpen(true)}
+                  className="flex items-center gap-1.5 px-2.5 py-1 bg-emerald-500/20 hover:bg-emerald-500/30 border border-emerald-500/40 text-emerald-300 font-bold text-[11px] rounded-lg transition-all active:scale-95"
+                >
+                  <Play className="w-3 h-3 text-emerald-400 fill-current" />
+                  <span>Iniciar Nova Torra</span>
+                </button>
               </div>
             </div>
           </div>
@@ -327,6 +348,18 @@ export const ActiveRoastPage: React.FC<ActiveRoastPageProps> = ({ ovenId, onBack
         onConfirm={handleConfirmFinish}
         onCancel={() => setIsFinishModalOpen(false)}
       />
+
+      {/* Modal para Iniciar Nova Torra */}
+      {isNewRoastModalOpen && (
+        <NewRoastModal
+          ovenId={ovenId}
+          onClose={() => setIsNewRoastModalOpen(false)}
+          onRoastStarted={() => {
+            setLatestAnalysis(null);
+            setIsNewRoastModalOpen(false);
+          }}
+        />
+      )}
 
     </div>
   );
