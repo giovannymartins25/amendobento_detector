@@ -77,9 +77,9 @@ export const RoastProvider: React.FC<{ children: React.ReactNode }> = ({ childre
               setAlerts(currAlerts => [reminderAlert, ...currAlerts]);
             }
 
-            // Check near completion alert (10s remaining for Forno 2 test mode, 120s for others)
+            // Check near completion alert (50s remaining for Forno 2 test mode, 120s for others)
             const estimate = analyticsEngine.getPredictiveEstimate(ovenId, newDuration, session.startTime);
-            const triggerRemaining = ovenId === 2 ? 10 : 120;
+            const triggerRemaining = ovenId === 2 ? 50 : 120;
 
             if (estimate.remainingSeconds === triggerRemaining) {
               const nearIdealAlert: PredictiveAlert = {
@@ -89,7 +89,7 @@ export const RoastProvider: React.FC<{ children: React.ReactNode }> = ({ childre
                 severity: 'warning',
                 title: `⏳ Torra Próxima do Ponto Ideal (${oven.name})`,
                 message: ovenId === 2
-                  ? `Faltam apenas 10 segundos para finalizar a torra no Forno 2 (Modo Teste 1 min).`
+                  ? `Faltam apenas 50 segundos para finalizar a torra no Forno 2 (Modo Teste 1 min).`
                   : `Faltam aproximadamente 2 minutos para atingir a média ideal (${Math.floor(estimate.estimatedTotalDurationSeconds / 60)} min).`,
                 read: false,
                 type: 'delay',

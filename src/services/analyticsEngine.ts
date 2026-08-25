@@ -92,8 +92,8 @@ export const analyticsEngine = {
       let message = '';
       if (isOverAverage) {
         message = `⚠️ Torra no Forno 2 ultrapassou a estimativa de teste (1 min).`;
-      } else if (remainingSeconds <= 10) {
-        message = `🟢 ALERTA TESTE (Forno 2): Ponto ideal em ${remainingSeconds}s!`;
+      } else if (remainingSeconds <= 50) {
+        message = `🟢 ALERTA TESTE (Forno 2): Ponto ideal aproximando-se! Faltam ${remainingSeconds}s!`;
       } else {
         message = `💡 Forno 2 (Modo Teste 1 min): Faltam ~${remainingSeconds}s para a conclusão.`;
       }

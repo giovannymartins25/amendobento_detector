@@ -23,13 +23,13 @@ export const KioskTvPage: React.FC = () => {
     audioAlarmService.setMuted(nextMuted);
   };
 
-  // Check if any roasting oven is near ideal completion (for Forno 2: 10s before 60s total, others: 120s before total)
+  // Check if any roasting oven is near ideal completion (for Forno 2: 50s before 60s total, others: 120s before total)
   const anyOvenNearCompletion = activeOvens.some(oven => {
     const session = activeRoasts[oven.id];
     if (!session || session.status !== 'roasting') return false;
 
     const estimate = analyticsEngine.getPredictiveEstimate(oven.id, session.durationSeconds, session.startTime);
-    const alertThreshold = oven.id === 2 ? 10 : 120;
+    const alertThreshold = oven.id === 2 ? 50 : 120;
     const isTimeNear = session.durationSeconds >= (estimate.estimatedTotalDurationSeconds - alertThreshold);
 
     const lastAnalysis = session.analyses.length > 0
@@ -112,7 +112,7 @@ export const KioskTvPage: React.FC = () => {
                 🚨 ALERTA DE TORRA PRÓXIMA DO PONTO (CHÃO DE FÁBRICA)
               </h3>
               <p className="text-xs text-amber-300 font-medium mt-0.5">
-                Aviso disparado! Forno próximo do ponto final de torra.
+                Aviso disparado! Forno 2 com aviso ativado (faltando 50s no modo teste de 1 min).
               </p>
             </div>
           </div>
@@ -147,7 +147,7 @@ export const KioskTvPage: React.FC = () => {
           const isRoasting = session && session.status === 'roasting';
 
           const estimate = analyticsEngine.getPredictiveEstimate(ovenId, session?.durationSeconds || 0, session?.startTime);
-          const alertThreshold = ovenId === 2 ? 10 : 120;
+          const alertThreshold = ovenId === 2 ? 50 : 120;
           const isTimeNear = isRoasting && session.durationSeconds >= (estimate.estimatedTotalDurationSeconds - alertThreshold);
 
           const lastAnalysis = session && session.analyses.length > 0
