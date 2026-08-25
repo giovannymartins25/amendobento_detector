@@ -353,6 +353,7 @@ export const ActiveRoastPage: React.FC<ActiveRoastPageProps> = ({ ovenId, onBack
       {isNewRoastModalOpen && (
         <NewRoastModal
           ovenId={ovenId}
+          suggestDifferentOven={true}
           onClose={() => setIsNewRoastModalOpen(false)}
           onRoastStarted={() => {
             setLatestAnalysis(null);

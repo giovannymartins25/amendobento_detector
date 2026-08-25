@@ -6,22 +6,29 @@ import { Play, X, User, Scale, Flame } from 'lucide-react';
 
 interface NewRoastModalProps {
   ovenId: OvenId | null;
+  suggestDifferentOven?: boolean;
   onClose: () => void;
   onRoastStarted: (ovenId: OvenId) => void;
 }
 
 export const NewRoastModal: React.FC<NewRoastModalProps> = ({
   ovenId,
+  suggestDifferentOven = false,
   onClose,
   onRoastStarted,
 }) => {
   const { users, currentUser } = useAuth();
   const { ovens, startRoast } = useRoast();
 
-  // Filter available active ovens and default to a DIFFERENT oven if opened from an active roast page
+  // Filter available active ovens. If suggestDifferentOven is true, default to a different oven than current ovenId
   const availableOvens = ovens.filter(o => o.status === 'active');
-  const differentOvens = availableOvens.filter(o => o.id !== ovenId);
-  const initialOvenId = differentOvens.length > 0 ? differentOvens[0].id : (ovenId || (availableOvens[0]?.id ?? 1));
+  const initialOvenId = (() => {
+    if (suggestDifferentOven && ovenId) {
+      const differentOvens = availableOvens.filter(o => o.id !== ovenId);
+      if (differentOvens.length > 0) return differentOvens[0].id;
+    }
+    return ovenId || (availableOvens[0]?.id ?? 1);
+  })();
 
   const [selectedOvenId, setSelectedOvenId] = useState<OvenId>(initialOvenId);
   const [selectedOperatorId, setSelectedOperatorId] = useState(currentUser.id);
