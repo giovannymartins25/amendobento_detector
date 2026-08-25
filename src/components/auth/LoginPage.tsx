@@ -137,12 +137,6 @@ export const LoginPage: React.FC = () => {
                 </select>
               </div>
 
-              {/* Info banner */}
-              <div className="p-3.5 bg-emerald-950/40 border border-emerald-600/30 rounded-xl text-xs text-emerald-300 flex items-start gap-2.5 font-medium">
-                <UserCheck className="w-4 h-4 text-emerald-400 shrink-0 mt-0.5" />
-                <span>Acesso simplificado de chão de fábrica. Nenhuma senha é necessária para operadores.</span>
-              </div>
-
               {errorMsg && (
                 <div className="p-3 bg-rose-950/80 border border-rose-600/60 rounded-xl text-xs text-rose-300 flex items-center gap-2 font-medium animate-fade-in">
                   <AlertCircle className="w-4 h-4 text-rose-400 shrink-0" />
@@ -220,7 +214,7 @@ export const LoginPage: React.FC = () => {
 
               {/* Hint Box */}
               <div className="p-3 bg-industrial-bg/80 border border-industrial-border rounded-xl text-[11px] text-industrial-textMuted font-mono">
-                👑 <strong className="text-white">Admin:</strong> <code className="text-blue-400 font-bold">fabio</code> • Senha: <code className="text-blue-400 font-bold">123</code>
+                <strong className="text-white">Admin:</strong> <code className="text-blue-400 font-bold">fabio</code> • Senha: <code className="text-blue-400 font-bold">123</code>
               </div>
 
               {errorMsg && (
