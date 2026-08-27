@@ -77,24 +77,54 @@ export const RoastProvider: React.FC<{ children: React.ReactNode }> = ({ childre
               setAlerts(currAlerts => [reminderAlert, ...currAlerts]);
             }
 
-            // Check near completion alert (50s remaining for Forno 2 test mode, 120s for others)
-            const estimate = analyticsEngine.getPredictiveEstimate(ovenId, newDuration, session.startTime);
-            const triggerRemaining = ovenId === 2 ? 50 : 120;
+            // Check alerts for Forno 1 (Yellow at 55 min = 3300s, Red at 1h 10m = 4200s)
+            if (ovenId === 1) {
+              if (newDuration === 3300) {
+                const yellowAlert: PredictiveAlert = {
+                  id: `yellow-1-${Date.now()}`,
+                  timestamp: new Date().toISOString(),
+                  ovenId: 1,
+                  severity: 'warning',
+                  title: `🟡 Alerta Amarelo (Forno 1)`,
+                  message: `Forno 1 atingiu 55 minutos de torra (janela ideal de 1h a 1h15).`,
+                  read: false,
+                  type: 'delay',
+                };
+                setAlerts(currAlerts => [yellowAlert, ...currAlerts]);
+              }
+              if (newDuration === 4200) {
+                const redAlert: PredictiveAlert = {
+                  id: `red-1-${Date.now()}`,
+                  timestamp: new Date().toISOString(),
+                  ovenId: 1,
+                  severity: 'danger',
+                  title: `🚨 Alerta Vermelho (Forno 1)`,
+                  message: `Forno 1 atingiu 1h e 10 min de torra. Verificar ponto de torra imediatamente!`,
+                  read: false,
+                  type: 'delay',
+                };
+                setAlerts(currAlerts => [redAlert, ...currAlerts]);
+              }
+            } else {
+              // Check near completion alert (50s remaining for Forno 2 test mode, 120s for others)
+              const estimate = analyticsEngine.getPredictiveEstimate(ovenId, newDuration, session.startTime);
+              const triggerRemaining = ovenId === 2 ? 50 : 120;
 
-            if (estimate.remainingSeconds === triggerRemaining) {
-              const nearIdealAlert: PredictiveAlert = {
-                id: `near-ideal-${ovenId}-${Date.now()}`,
-                timestamp: new Date().toISOString(),
-                ovenId,
-                severity: 'warning',
-                title: `⏳ Torra Próxima do Ponto Ideal (${oven.name})`,
-                message: ovenId === 2
-                  ? `Faltam apenas 50 segundos para finalizar a torra no Forno 2 (Modo Teste 1 min).`
-                  : `Faltam aproximadamente 2 minutos para atingir a média ideal (${Math.floor(estimate.estimatedTotalDurationSeconds / 60)} min).`,
-                read: false,
-                type: 'delay',
-              };
-              setAlerts(currAlerts => [nearIdealAlert, ...currAlerts]);
+              if (estimate.remainingSeconds === triggerRemaining) {
+                const nearIdealAlert: PredictiveAlert = {
+                  id: `near-ideal-${ovenId}-${Date.now()}`,
+                  timestamp: new Date().toISOString(),
+                  ovenId,
+                  severity: 'warning',
+                  title: `⏳ Torra Próxima do Ponto Ideal (${oven.name})`,
+                  message: ovenId === 2
+                    ? `Faltam apenas 50 segundos para finalizar a torra no Forno 2 (Modo Teste 1 min).`
+                    : `Faltam aproximadamente 2 minutos para atingir a média ideal (${Math.floor(estimate.estimatedTotalDurationSeconds / 60)} min).`,
+                  read: false,
+                  type: 'delay',
+                };
+                setAlerts(currAlerts => [nearIdealAlert, ...currAlerts]);
+              }
             }
 
             nextState[ovenId] = {

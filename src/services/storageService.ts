@@ -40,8 +40,9 @@ function generateInitialHistoricalSessions(): RoastSession[] {
     const operator = operators[i % operators.length];
     const sessionDate = new Date(now.getTime() - i * 16 * 60 * 60 * 1000); // spread across days
 
-    // Oven 2 is slightly slower (e.g. 720s average vs 600s for Oven 1 and 610s for Oven 3)
-    let baseDuration = 600;
+    // Oven 1 has target range 1h to 1h15m (avg ~3900s = 65 min)
+    let baseDuration = 3900;
+    if (ovenId === 1) baseDuration = 3900;
     if (ovenId === 2) baseDuration = 730; // 18% slower -> triggers maintenance alert!
     if (ovenId === 3) baseDuration = 590;
 

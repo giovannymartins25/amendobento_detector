@@ -43,10 +43,14 @@ export const KioskTvPage: React.FC<KioskTvPageProps> = ({ onNavigateToRoast }) =
     }
   };
 
-  // Check if any roasting oven is near ideal completion (for Forno 2: 50s before 60s total, others: 120s before total)
+  // Check if any roasting oven is near ideal completion (Forno 1: 55m, Forno 2: 50s before 60s total, others: 120s before total)
   const anyOvenNearCompletion = activeOvens.some(oven => {
     const session = activeRoasts[oven.id];
     if (!session || session.status !== 'roasting') return false;
+
+    if (oven.id === 1) {
+      return session.durationSeconds >= 3300 && session.durationSeconds < 4200;
+    }
 
     const estimate = analyticsEngine.getPredictiveEstimate(oven.id, session.durationSeconds, session.startTime);
     const alertThreshold = oven.id === 2 ? 50 : 120;
@@ -61,10 +65,13 @@ export const KioskTvPage: React.FC<KioskTvPageProps> = ({ onNavigateToRoast }) =
     return isTimeNear || isStageNear;
   });
 
-  // Check if Forno 2 is at critical urgent red stage (10s or less remaining)
+  // Check if any oven is at critical urgent red stage (Forno 1: 1h 10m / 4200s, Forno 2: 10s or less)
   const anyOvenUrgentRed = activeOvens.some(oven => {
     const session = activeRoasts[oven.id];
     if (!session || session.status !== 'roasting') return false;
+    if (oven.id === 1) {
+      return session.durationSeconds >= 4200;
+    }
     const estimate = analyticsEngine.getPredictiveEstimate(oven.id, session.durationSeconds, session.startTime);
     return oven.id === 2 && estimate.remainingSeconds <= 10;
   });
@@ -146,10 +153,12 @@ export const KioskTvPage: React.FC<KioskTvPageProps> = ({ onNavigateToRoast }) =
             <AlertTriangle className="w-9 h-9 text-rose-400 animate-bounce shrink-0" />
             <div>
               <h3 className="font-mono font-black text-xl text-rose-100 uppercase tracking-wider">
-                🚨 ALERTA VERMELHO CRÍTICO: FALTA APENAS 10 SEGUNDOS (FORNO 2)
+                🚨 ALERTA VERMELHO CRÍTICO NO PAINEL
               </h3>
               <p className="text-xs text-rose-300 font-bold mt-0.5">
-                Atenção máxima! Forno 2 atingiu a contagem regressiva final do ponto de torra.
+                {activeRoasts[1]?.status === 'roasting' && activeRoasts[1].durationSeconds >= 4200
+                  ? 'Atenção máxima! Forno 1 atingiu 1h e 10 min de torra (Alerta Vermelho).'
+                  : 'Atenção máxima! Forno 2 atingiu a contagem regressiva final do ponto de torra.'}
               </p>
             </div>
           </div>
@@ -160,10 +169,14 @@ export const KioskTvPage: React.FC<KioskTvPageProps> = ({ onNavigateToRoast }) =
             <AlertTriangle className="w-8 h-8 text-amber-400 animate-bounce shrink-0" />
             <div>
               <h3 className="font-mono font-black text-lg text-amber-200 uppercase tracking-wider">
-                🚨 ALERTA DE TORRA PRÓXIMA DO PONTO
+                ⚠️ ALERTA AMARELO DE TORRA PRÓXIMA DO PONTO
               </h3>
               <p className="text-xs text-amber-300 font-medium mt-0.5">
-                Aviso disparado! Forno 2 com aviso ativado (faltando 50s no modo teste de 1 min).
+                {activeRoasts[1]?.status === 'roasting' && activeRoasts[1].durationSeconds >= 3300 && activeRoasts[1].durationSeconds < 4200
+                  ? 'Aviso disparado! Forno 1 atingiu 55 minutos de torra (ponto ideal: 1h a 1h15).'
+                  : activeRoasts[2]?.status === 'roasting' && activeRoasts[2].durationSeconds >= 10
+                    ? 'Aviso disparado! Forno 2 com aviso ativado (faltando 50s no modo teste de 1 min).'
+                    : 'Aviso disparado! Torra próxima do ponto de conclusão.'}
               </p>
             </div>
           </div>
@@ -197,16 +210,24 @@ export const KioskTvPage: React.FC<KioskTvPageProps> = ({ onNavigateToRoast }) =
           const estimate = analyticsEngine.getPredictiveEstimate(ovenId, session?.durationSeconds || 0, session?.startTime);
           const remainingSeconds = estimate.remainingSeconds;
 
-          const isUrgentRed = isRoasting && ovenId === 2 && remainingSeconds <= 10;
-          const alertThreshold = ovenId === 2 ? 50 : 120;
-          const isTimeNear = isRoasting && session.durationSeconds >= (estimate.estimatedTotalDurationSeconds - alertThreshold);
+          const isUrgentRed = isRoasting && (
+            ovenId === 1 ? session.durationSeconds >= 4200 :
+            ovenId === 2 ? remainingSeconds <= 10 : false
+          );
 
+          const alertThreshold = ovenId === 2 ? 50 : 120;
           const lastAnalysis = session && session.analyses.length > 0
             ? session.analyses[session.analyses.length - 1]
             : null;
 
+          const isTimeNear = isRoasting && session.durationSeconds >= (estimate.estimatedTotalDurationSeconds - alertThreshold);
           const isStageNear = lastAnalysis?.stage === 'quase' || lastAnalysis?.stage === 'ideal';
-          const isNearCompletion = isRoasting && (isTimeNear || isStageNear);
+
+          const isNearCompletion = isRoasting && !isUrgentRed && (
+            ovenId === 1 ? session.durationSeconds >= 3300 :
+            ovenId === 2 ? session.durationSeconds >= (estimate.estimatedTotalDurationSeconds - 50) :
+            (isTimeNear || isStageNear)
+          );
 
           return (
             <div
@@ -248,12 +269,16 @@ export const KioskTvPage: React.FC<KioskTvPageProps> = ({ onNavigateToRoast }) =
                 {isUrgentRed ? (
                   <div className="flex items-center gap-2 bg-rose-950/95 border border-rose-500/90 px-3.5 py-1.5 rounded-full">
                     <span className="w-3 h-3 rounded-full bg-rose-500 animate-ping" />
-                    <span className="text-xs font-black text-rose-300 tracking-wider">🔴 URGENTE: FALTA 10s!</span>
+                    <span className="text-xs font-black text-rose-300 tracking-wider">
+                      {ovenId === 1 ? '🔴 ALERTA VERMELHO (1h10m)' : '🔴 URGENTE: FALTA 10s!'}
+                    </span>
                   </div>
                 ) : isNearCompletion ? (
                   <div className="flex items-center gap-2 bg-amber-950/90 border border-amber-500/80 px-3.5 py-1.5 rounded-full">
                     <span className="w-3 h-3 rounded-full bg-amber-400 animate-ping" />
-                    <span className="text-xs font-black text-amber-300 tracking-wider">QUASE PRONTO!</span>
+                    <span className="text-xs font-black text-amber-300 tracking-wider">
+                      {ovenId === 1 ? '🟡 ALERTA AMARELO (55m)' : 'QUASE PRONTO!'}
+                    </span>
                   </div>
                 ) : isRoasting ? (
                   <div className="flex items-center gap-2 bg-emerald-950/90 border border-emerald-500/60 px-3.5 py-1.5 rounded-full">
@@ -293,14 +318,19 @@ export const KioskTvPage: React.FC<KioskTvPageProps> = ({ onNavigateToRoast }) =
                 {isUrgentRed ? (
                   <div className="mt-2 text-xs font-black text-rose-300 flex items-center justify-center gap-1.5 font-mono animate-pulse">
                     <AlertTriangle className="w-4 h-4 text-rose-400" />
-                    🚨 CRÍTICO: FALTA APENAS {Math.max(0, remainingSeconds)} SEGUNDOS!
+                    {ovenId === 1
+                      ? '🚨 ALERTA VERMELHO: FORNO 1 ATINGIU 1H E 10 MIN!'
+                      : `🚨 CRÍTICO: FALTA APENAS ${Math.max(0, remainingSeconds)} SEGUNDOS!`
+                    }
                   </div>
                 ) : isNearCompletion ? (
                   <div className="mt-2 text-xs font-bold text-amber-300 flex items-center justify-center gap-1.5 font-mono animate-pulse">
                     <AlertTriangle className="w-4 h-4" />
-                    {ovenId === 2
-                      ? `ATENÇÃO: FALTA ~${Math.max(0, remainingSeconds)} SEGUNDOS (FORNO 2 MODO TESTE 1 MIN)`
-                      : `ATENÇÃO: FALTA ~${Math.ceil(remainingSeconds / 60)} MINUTOS (ESTIMATIVA AJUSTADA)`
+                    {ovenId === 1
+                      ? '⚠️ ALERTA AMARELO: FORNO 1 ATINGIU 55 MINUTOS (PONTO IDEAL: 1H A 1H 15MIN)'
+                      : ovenId === 2
+                        ? `ATENÇÃO: FALTA ~${Math.max(0, remainingSeconds)} SEGUNDOS (FORNO 2 MODO TESTE 1 MIN)`
+                        : `ATENÇÃO: FALTA ~${Math.ceil(remainingSeconds / 60)} MINUTOS (ESTIMATIVA AJUSTADA)`
                     }
                   </div>
                 ) : null}

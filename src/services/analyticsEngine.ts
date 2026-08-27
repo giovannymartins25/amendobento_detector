@@ -34,12 +34,13 @@ export const analyticsEngine = {
     const globalSessions = storageService.getSessions().filter(s => s.status === 'completed');
 
     if (allSessions.length === 0) {
+      const isOven1 = ovenId === 1;
       return {
         ovenId,
         totalRoasts: 0,
-        avgDurationSeconds: 600,
-        minDurationSeconds: 540,
-        maxDurationSeconds: 660,
+        avgDurationSeconds: isOven1 ? 3900 : 600,
+        minDurationSeconds: isOven1 ? 3600 : 540,
+        maxDurationSeconds: isOven1 ? 4500 : 660,
         efficiencyRating: 95,
         status: 'idle',
         isMaintenanceRequired: false,
@@ -81,6 +82,38 @@ export const analyticsEngine = {
   },
 
   getPredictiveEstimate(ovenId: OvenId, currentSeconds: number, sessionStartTime?: string): PredictiveEstimate {
+    // Configuração para o FORNO 1 (Tempo ideal de 1h a 1h e 15 min: 3600s a 4500s)
+    if (ovenId === 1) {
+      const expectedTotal = 3900; // 1h 05 min (média da faixa de 1h a 1h15)
+      const remainingSeconds = Math.max(0, expectedTotal - currentSeconds);
+      const progressPercentage = Math.min(100, Math.round((currentSeconds / expectedTotal) * 100));
+      const isOverAverage = currentSeconds > expectedTotal;
+      const deviationPercent = expectedTotal > 0 ? Math.round(((currentSeconds - expectedTotal) / expectedTotal) * 100) : 0;
+
+      let message = '';
+      if (currentSeconds >= 4200) {
+        message = `🚨 ALERTA VERMELHO (Forno 1): 1h e 10 min de torra atingidos!`;
+      } else if (currentSeconds >= 3300) {
+        message = `🟡 ALERTA AMARELO (Forno 1): 55 min de torra atingidos (Ponto ideal: 1h a 1h15)!`;
+      } else if (currentSeconds < 3600) {
+        const minsLeft = Math.ceil((3600 - currentSeconds) / 60);
+        message = `💡 Forno 1 (Faixa 1h - 1h15): Faltam ~${minsLeft} min para iniciar a janela ideal.`;
+      } else {
+        message = `🟢 Forno 1 em faixa ideal de torra (entre 1h e 1h15).`;
+      }
+
+      return {
+        estimatedTotalDurationSeconds: expectedTotal,
+        remainingSeconds,
+        progressPercentage,
+        message,
+        isOverAverage,
+        deviationPercent,
+        isFirstRoastOfDay: false,
+        coldStartBonusSeconds: 0,
+      };
+    }
+
     // Modo de Teste especial para o FORNO 2 (Torra de 1 minuto = 60s)
     if (ovenId === 2) {
       const expectedTotal = 60; // 1 minuto
