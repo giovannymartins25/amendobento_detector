@@ -23,6 +23,17 @@ interface RoastContextType {
 
 const RoastContext = createContext<RoastContextType | undefined>(undefined);
 
+// Helper: send a browser system notification (works even in background)
+function sendSystemNotification(title: string, body: string, tag?: string) {
+  if (!('Notification' in window)) return;
+  if (Notification.permission !== 'granted') return;
+  try {
+    new Notification(title, { body, tag, requireInteraction: true, icon: '/favicon.ico' });
+  } catch (e) {
+    console.warn('Notification error:', e);
+  }
+}
+
 export const RoastProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [ovens, setOvens] = useState<OvenConfig[]>(() => storageService.getOvens());
   const [activeRoasts, setActiveRoasts] = useState<Record<OvenId, RoastSession | null>>(() => storageService.getActiveRoasts());
@@ -43,74 +54,141 @@ export const RoastProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     storageService.saveAlerts(alerts);
   }, [alerts]);
 
-  // Real-time ticking for active roasts & predictive checks
+  // --------------------------------------------------------------------------
+  // TIMER — resistente ao background / segundo plano
+  //
+  // ESTRATÉGIA:
+  //   1. Usamos um Web Worker para enviar ticks a cada 1s sem ser afetado pelo
+  //      throttle de tabs do browser.
+  //   2. A cada tick, recalculamos durationSeconds como:
+  //        Math.floor((Date.now() - startTime) / 1000)
+  //      Assim, mesmo que a aba fique horas em background, ao retornar o
+  //      tempo já estará correto instantaneamente.
+  //   3. Para alertas (amarelo/vermelho) enviamos Notificações de Sistema via
+  //      Notifications API — aparecem mesmo com site minimizado ou em segundo
+  //      plano no celular/computador.
+  // --------------------------------------------------------------------------
   useEffect(() => {
-    const interval = setInterval(() => {
+    // Solicita permissão de notificação silenciosamente ao montar
+    if ('Notification' in window && Notification.permission === 'default') {
+      Notification.requestPermission().catch(() => {});
+    }
+
+    // Inicia Web Worker para ticks
+    const worker = new Worker(
+      new URL('../workers/timerWorker.ts', import.meta.url),
+      { type: 'module' }
+    );
+    worker.postMessage('start');
+
+    // Rastreia quais alertas já foram disparados para não repetir
+    const firedAlerts = new Set<string>();
+
+    worker.onmessage = () => {
+      // Tick recebido do worker
       setActiveRoasts(prev => {
         let updated = false;
         const nextState = { ...prev };
+        const now = Date.now();
 
         ovens.filter(o => o.status === 'active').forEach(oven => {
           const ovenId = oven.id;
           const session = nextState[ovenId];
           if (session && session.status === 'roasting') {
             updated = true;
-            const newDuration = session.durationSeconds + 1;
 
-            // Check if photo reminder is needed (no analysis in last 150 seconds)
+            // ---------------------------------------------------------------
+            // CÁLCULO BASEADO EM startTime (não acumula erro em background)
+            // ---------------------------------------------------------------
+            const startMs = new Date(session.startTime).getTime();
+            const newDuration = Math.floor((now - startMs) / 1000);
+
+            // Photo reminder: sem análise por 150s
             const lastAnalysis = session.analyses[session.analyses.length - 1];
             const secondsSinceLastAnalysis = lastAnalysis
               ? newDuration - lastAnalysis.timeInRoastSeconds
               : newDuration;
 
             if (secondsSinceLastAnalysis === 150) {
-              const reminderAlert: PredictiveAlert = {
-                id: `reminder-${ovenId}-${Date.now()}`,
-                timestamp: new Date().toISOString(),
-                ovenId,
-                severity: 'warning',
-                title: `⚠️ Lembrete de Análise (${oven.name})`,
-                message: `Torra em andamento há mais de 2.5 min sem nova captura de foto.`,
-                read: false,
-                type: 'photo_reminder',
-              };
-              setAlerts(currAlerts => [reminderAlert, ...currAlerts]);
+              const alertId = `reminder-${ovenId}-photo`;
+              if (!firedAlerts.has(alertId)) {
+                firedAlerts.add(alertId);
+                const reminderAlert: PredictiveAlert = {
+                  id: `reminder-${ovenId}-${Date.now()}`,
+                  timestamp: new Date().toISOString(),
+                  ovenId,
+                  severity: 'warning',
+                  title: `⚠️ Lembrete de Análise (${oven.name})`,
+                  message: `Torra em andamento há mais de 2.5 min sem nova captura de foto.`,
+                  read: false,
+                  type: 'photo_reminder',
+                };
+                setAlerts(currAlerts => [reminderAlert, ...currAlerts]);
+                // Notificação de sistema (visível em background)
+                if (document.hidden) {
+                  sendSystemNotification(
+                    `⚠️ ${oven.name} — Lembrete`,
+                    'Torra há +2.5 min sem nova foto. Tire uma foto da torra!',
+                    `reminder-${ovenId}`
+                  );
+                }
+              }
             }
 
-            // Check alerts for Forno 1 (Yellow at 55 min = 3300s, Red at 1h 10m = 4200s)
+            // Alertas específicos do FORNO 1
             if (ovenId === 1) {
-              if (newDuration === 3300) {
-                const yellowAlert: PredictiveAlert = {
-                  id: `yellow-1-${Date.now()}`,
-                  timestamp: new Date().toISOString(),
-                  ovenId: 1,
-                  severity: 'warning',
-                  title: `🟡 Alerta Amarelo (Forno 1)`,
-                  message: `Forno 1 atingiu 55 minutos de torra (janela ideal de 1h a 1h15).`,
-                  read: false,
-                  type: 'delay',
-                };
-                setAlerts(currAlerts => [yellowAlert, ...currAlerts]);
+              if (newDuration >= 3300) {
+                const yellowKey = `yellow-oven1`;
+                if (!firedAlerts.has(yellowKey)) {
+                  firedAlerts.add(yellowKey);
+                  const yellowAlert: PredictiveAlert = {
+                    id: `yellow-1-${Date.now()}`,
+                    timestamp: new Date().toISOString(),
+                    ovenId: 1,
+                    severity: 'warning',
+                    title: `🟡 Alerta Amarelo (Forno 1)`,
+                    message: `Forno 1 atingiu 55 minutos de torra (janela ideal de 1h a 1h15).`,
+                    read: false,
+                    type: 'delay',
+                  };
+                  setAlerts(currAlerts => [yellowAlert, ...currAlerts]);
+                  sendSystemNotification(
+                    '🟡 Forno 1 — Alerta Amarelo',
+                    'Forno 1 atingiu 55 minutos! Janela ideal: 1h a 1h15. Fique atento!',
+                    'oven1-yellow'
+                  );
+                }
               }
-              if (newDuration === 4200) {
-                const redAlert: PredictiveAlert = {
-                  id: `red-1-${Date.now()}`,
-                  timestamp: new Date().toISOString(),
-                  ovenId: 1,
-                  severity: 'danger',
-                  title: `🚨 Alerta Vermelho (Forno 1)`,
-                  message: `Forno 1 atingiu 1h e 10 min de torra. Verificar ponto de torra imediatamente!`,
-                  read: false,
-                  type: 'delay',
-                };
-                setAlerts(currAlerts => [redAlert, ...currAlerts]);
+              if (newDuration >= 4200) {
+                const redKey = `red-oven1`;
+                if (!firedAlerts.has(redKey)) {
+                  firedAlerts.add(redKey);
+                  const redAlert: PredictiveAlert = {
+                    id: `red-1-${Date.now()}`,
+                    timestamp: new Date().toISOString(),
+                    ovenId: 1,
+                    severity: 'danger',
+                    title: `🚨 Alerta Vermelho (Forno 1)`,
+                    message: `Forno 1 atingiu 1h e 10 min de torra. Verificar ponto imediatamente!`,
+                    read: false,
+                    type: 'delay',
+                  };
+                  setAlerts(currAlerts => [redAlert, ...currAlerts]);
+                  sendSystemNotification(
+                    '🚨 FORNO 1 — ALERTA VERMELHO CRÍTICO',
+                    'Forno 1 está em 1h e 10 min de torra! Verifique o ponto imediatamente!',
+                    'oven1-red'
+                  );
+                }
               }
             } else {
-              // Check near completion alert (50s remaining for Forno 2 test mode, 120s for others)
+              // Outros fornos: alerta por remaining seconds
               const estimate = analyticsEngine.getPredictiveEstimate(ovenId, newDuration, session.startTime);
               const triggerRemaining = ovenId === 2 ? 50 : 120;
+              const nearKey = `near-ideal-oven${ovenId}`;
 
-              if (estimate.remainingSeconds === triggerRemaining) {
+              if (estimate.remainingSeconds <= triggerRemaining && !firedAlerts.has(nearKey)) {
+                firedAlerts.add(nearKey);
                 const nearIdealAlert: PredictiveAlert = {
                   id: `near-ideal-${ovenId}-${Date.now()}`,
                   timestamp: new Date().toISOString(),
@@ -118,12 +196,19 @@ export const RoastProvider: React.FC<{ children: React.ReactNode }> = ({ childre
                   severity: 'warning',
                   title: `⏳ Torra Próxima do Ponto Ideal (${oven.name})`,
                   message: ovenId === 2
-                    ? `Faltam apenas 50 segundos para finalizar a torra no Forno 2 (Modo Teste 1 min).`
+                    ? `Faltam apenas ${triggerRemaining} segundos para finalizar a torra no Forno 2.`
                     : `Faltam aproximadamente 2 minutos para atingir a média ideal (${Math.floor(estimate.estimatedTotalDurationSeconds / 60)} min).`,
                   read: false,
                   type: 'delay',
                 };
                 setAlerts(currAlerts => [nearIdealAlert, ...currAlerts]);
+                sendSystemNotification(
+                  `⏳ ${oven.name} — Quase no Ponto`,
+                  ovenId === 2
+                    ? `Faltam ~${triggerRemaining}s para a torra ideal!`
+                    : `Faltam ~2 minutos para o ponto ideal!`,
+                  `near-ideal-${ovenId}`
+                );
               }
             }
 
@@ -136,9 +221,12 @@ export const RoastProvider: React.FC<{ children: React.ReactNode }> = ({ childre
 
         return updated ? nextState : prev;
       });
-    }, 1000);
+    };
 
-    return () => clearInterval(interval);
+    return () => {
+      worker.postMessage('stop');
+      worker.terminate();
+    };
   }, [ovens]);
 
   // Check Maintenance warning on startup
@@ -221,6 +309,11 @@ export const RoastProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     targetQuantityKg?: number;
     notes?: string;
   }) => {
+    // Solicitar permissão de notificação ao iniciar torra (momento certo para pedir)
+    if ('Notification' in window && Notification.permission === 'default') {
+      Notification.requestPermission().catch(() => {});
+    }
+
     // Garantir que o forno fique visível no painel/TV ao iniciar torra
     setOvens(prev => prev.map(o => o.id === ovenId ? { ...o, isVisibleOnBoard: true } : o));
 
