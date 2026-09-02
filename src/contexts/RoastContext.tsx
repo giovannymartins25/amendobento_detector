@@ -1,6 +1,7 @@
 import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
 import { RoastSession, OvenId, AnalysisResult, PredictiveAlert, RoastStage, OvenConfig } from '../types/roast';
-import { storageService } from '../services/storageService';
+import { storageService, INITIAL_OVENS } from '../services/storageService';
+import { supabaseService } from '../services/supabaseService';
 import { analyticsEngine } from '../services/analyticsEngine';
 import { getStageLabel } from '../utils/formatters';
 
@@ -35,24 +36,24 @@ function sendSystemNotification(title: string, body: string, tag?: string) {
 }
 
 export const RoastProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const [ovens, setOvens] = useState<OvenConfig[]>(() => storageService.getOvens());
-  const [activeRoasts, setActiveRoasts] = useState<Record<OvenId, RoastSession | null>>(() => storageService.getActiveRoasts());
-  const [alerts, setAlerts] = useState<PredictiveAlert[]>(() => storageService.getAlerts());
+  const [ovens, setOvens] = useState<OvenConfig[]>(INITIAL_OVENS);
+  const [activeRoasts, setActiveRoasts] = useState<Record<OvenId, RoastSession | null>>({ 1: null, 2: null, 3: null });
+  const [alerts, setAlerts] = useState<PredictiveAlert[]>([]);
 
-  // Save ovens on change
+  // Carregar dados iniciais diretamente do Supabase DB
   useEffect(() => {
-    storageService.saveOvens(ovens);
-  }, [ovens]);
+    supabaseService.fetchOvens().then(remoteOvens => {
+      if (remoteOvens && remoteOvens.length > 0) {
+        setOvens(remoteOvens);
+      }
+    }).catch(() => {});
 
-  // Save active roasts on change
-  useEffect(() => {
-    storageService.saveActiveRoasts(activeRoasts);
-  }, [activeRoasts]);
-
-  // Save alerts on change
-  useEffect(() => {
-    storageService.saveAlerts(alerts);
-  }, [alerts]);
+    supabaseService.fetchAlerts().then(remoteAlerts => {
+      if (remoteAlerts && remoteAlerts.length > 0) {
+        setAlerts(remoteAlerts);
+      }
+    }).catch(() => {});
+  }, []);
 
   // --------------------------------------------------------------------------
   // TIMER — resistente ao background / segundo plano
@@ -475,6 +476,11 @@ export const RoastProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       }
     }
 
+    // Salvar análise estritamente no banco de dados Supabase (tabela public.analyses)
+    supabaseService.saveAnalysis(newAnalysis).catch(e => {
+      console.warn('[RoastContext] Erro ao salvar análise no Supabase DB:', e);
+    });
+
     return newAnalysis;
   }, [activeRoasts]);
 
@@ -488,16 +494,24 @@ export const RoastProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       const session = prev[ovenId];
       if (!session) return prev;
 
+      let updatedAnalysisItem: AnalysisResult | undefined;
+
       const updatedAnalyses = session.analyses.map(a => {
         if (a.id === analysisId) {
-          return {
+          const item = {
             ...a,
             humanFeedback: feedback,
             correctedStage: feedback === 'disagreed' ? correctedStage : undefined,
           };
+          updatedAnalysisItem = item;
+          return item;
         }
         return a;
       });
+
+      if (updatedAnalysisItem) {
+        supabaseService.saveAnalysis(updatedAnalysisItem).catch(() => {});
+      }
 
       return {
         ...prev,

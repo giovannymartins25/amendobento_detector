@@ -1,10 +1,10 @@
 import { DetectedObject, RoastStage } from '../types/roast';
 
-// Read Roboflow credentials from window (config.js)
+// Read Roboflow credentials from environment variables (or window config if defined at runtime)
 const getRoboflowConfig = () => {
   const windowObj = window as any;
-  const apiKey = windowObj.ROBOFLOW_API_KEY || 'wD180xBchkawm9tzhTqR';
-  const modelEndpoint = windowObj.ROBOFLOW_MODEL_ENDPOINT || 'amendobento/1';
+  const apiKey = (import.meta as any).env?.VITE_ROBOFLOW_API_KEY || windowObj.ROBOFLOW_API_KEY || '';
+  const modelEndpoint = (import.meta as any).env?.VITE_ROBOFLOW_MODEL_ENDPOINT || windowObj.ROBOFLOW_MODEL_ENDPOINT || 'amendobento/1';
   return { apiKey, modelEndpoint };
 };
 

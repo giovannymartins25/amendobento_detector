@@ -3,9 +3,9 @@ import { useAuth } from '../../contexts/AuthContext';
 import { Flame, Lock, User as UserIcon, UserCheck, ShieldCheck, Eye, EyeOff, AlertCircle, LogIn } from 'lucide-react';
 
 export const LoginPage: React.FC = () => {
-  const { loginAs, users } = useAuth();
+  const { loginAs, users, authError, setAuthError } = useAuth();
   const [activeMode, setActiveMode] = useState<'operator' | 'admin'>('operator');
-  
+
   // Operator selection state
   const operatorUsers = users.filter(u => u.role === 'operator');
   const [selectedOperatorId, setSelectedOperatorId] = useState<string>(operatorUsers[0]?.id || 'op-1');
@@ -14,42 +14,58 @@ export const LoginPage: React.FC = () => {
   const [adminUsername, setAdminUsername] = useState<string>('fabio');
   const [adminPassword, setAdminPassword] = useState<string>('');
   const [showPassword, setShowPassword] = useState<boolean>(false);
-  const [errorMsg, setErrorMsg] = useState<string | null>(null);
+  const [localError, setLocalError] = useState<string | null>(null);
+  const [isLoading, setIsLoading] = useState<boolean>(false);
 
-  const handleOperatorLogin = (e: React.FormEvent) => {
+  const errorMsg = localError || authError;
+
+  const handleOperatorLogin = async (e: React.FormEvent) => {
     e.preventDefault();
-    setErrorMsg(null);
+    setLocalError(null);
+    setAuthError(null);
     if (!selectedOperatorId) {
-      setErrorMsg('Por favor, selecione um operador.');
+      setLocalError('Por favor, selecione um operador.');
       return;
     }
-    const success = loginAs(selectedOperatorId);
-    if (!success) {
-      setErrorMsg('Não foi possível realizar o acesso do operador.');
+    setIsLoading(true);
+    try {
+      const success = await loginAs(selectedOperatorId);
+      if (!success) {
+        setLocalError(authError || 'Operador não autorizado no banco de dados do Supabase.');
+      }
+    } finally {
+      setIsLoading(false);
     }
   };
 
-  const handleAdminLogin = (e: React.FormEvent) => {
+  const handleAdminLogin = async (e: React.FormEvent) => {
     e.preventDefault();
-    setErrorMsg(null);
+    setLocalError(null);
+    setAuthError(null);
 
     if (!adminPassword.trim()) {
-      setErrorMsg('Por favor, informe a senha de acesso do Administrador.');
+      setLocalError('Por favor, informe a senha de acesso do Administrador.');
       return;
     }
 
-    const success = loginAs(adminUsername.trim() || 'fabio', adminPassword.trim());
-    if (!success) {
-      setErrorMsg('Senha de administrador incorreta! (Senha padrão: 123)');
+    setIsLoading(true);
+    try {
+      const success = await loginAs(adminUsername.trim() || 'fabio', adminPassword.trim());
+      if (!success) {
+        setLocalError(authError || 'Usuário não encontrado ou senha de administrador incorreta (Tabela Supabase).');
+      }
+    } finally {
+      setIsLoading(false);
     }
   };
+
 
   return (
     <div className="min-h-screen bg-industrial-bg text-industrial-textPrimary flex flex-col justify-center items-center p-4 sm:p-6 bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-industrial-card via-industrial-bg to-black">
-      
+
       {/* Container Card */}
       <div className="w-full max-w-md space-y-6 animate-scale-up">
-        
+
         {/* Brand Header */}
         <div className="text-center space-y-3">
           <div className="w-16 h-16 rounded-3xl bg-gradient-to-br from-industrial-accent to-blue-700 mx-auto flex items-center justify-center shadow-scada-glow">
@@ -71,13 +87,13 @@ export const LoginPage: React.FC = () => {
             type="button"
             onClick={() => {
               setActiveMode('operator');
-              setErrorMsg(null);
+              setLocalError(null);
+              setAuthError(null);
             }}
-            className={`flex items-center justify-center gap-2 py-2.5 px-3 rounded-xl text-xs font-extrabold uppercase tracking-wider transition-all ${
-              activeMode === 'operator'
-                ? 'bg-emerald-600 text-white shadow-lg'
-                : 'text-industrial-textMuted hover:text-white hover:bg-industrial-bg'
-            }`}
+            className={`flex items-center justify-center gap-2 py-2.5 px-3 rounded-xl text-xs font-extrabold uppercase tracking-wider transition-all ${activeMode === 'operator'
+              ? 'bg-emerald-600 text-white shadow-lg'
+              : 'text-industrial-textMuted hover:text-white hover:bg-industrial-bg'
+              }`}
           >
             <UserCheck className="w-4 h-4" />
             Operador
@@ -87,13 +103,13 @@ export const LoginPage: React.FC = () => {
             type="button"
             onClick={() => {
               setActiveMode('admin');
-              setErrorMsg(null);
+              setLocalError(null);
+              setAuthError(null);
             }}
-            className={`flex items-center justify-center gap-2 py-2.5 px-3 rounded-xl text-xs font-extrabold uppercase tracking-wider transition-all ${
-              activeMode === 'admin'
-                ? 'bg-blue-600 text-white shadow-lg'
-                : 'text-industrial-textMuted hover:text-white hover:bg-industrial-bg'
-            }`}
+            className={`flex items-center justify-center gap-2 py-2.5 px-3 rounded-xl text-xs font-extrabold uppercase tracking-wider transition-all ${activeMode === 'admin'
+              ? 'bg-blue-600 text-white shadow-lg'
+              : 'text-industrial-textMuted hover:text-white hover:bg-industrial-bg'
+              }`}
           >
             <ShieldCheck className="w-4 h-4" />
             Admin / Supervisão
@@ -102,7 +118,7 @@ export const LoginPage: React.FC = () => {
 
         {/* Form Box */}
         <div className="bg-industrial-card border border-industrial-border rounded-3xl p-6 sm:p-8 shadow-2xl space-y-6">
-          
+
           {/* OPERATOR LOGIN MODE */}
           {activeMode === 'operator' && (
             <form onSubmit={handleOperatorLogin} className="space-y-5">
@@ -125,7 +141,8 @@ export const LoginPage: React.FC = () => {
                   value={selectedOperatorId}
                   onChange={e => {
                     setSelectedOperatorId(e.target.value);
-                    setErrorMsg(null);
+                    setLocalError(null);
+                    setAuthError(null);
                   }}
                   className="w-full bg-industrial-bg border border-industrial-border rounded-xl py-3.5 px-4 text-white text-sm font-semibold focus:border-emerald-500 focus:outline-none transition-all cursor-pointer"
                 >
@@ -146,10 +163,11 @@ export const LoginPage: React.FC = () => {
 
               <button
                 type="submit"
-                className="w-full h-13 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-teal-600 hover:to-emerald-500 text-white font-extrabold rounded-xl shadow-scada-glow flex items-center justify-center gap-2 text-sm uppercase tracking-wider active:scale-98 transition-all"
+                disabled={isLoading}
+                className="w-full h-13 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-teal-600 hover:to-emerald-500 text-white font-extrabold rounded-xl shadow-scada-glow flex items-center justify-center gap-2 text-sm uppercase tracking-wider active:scale-98 transition-all disabled:opacity-50"
               >
                 <LogIn className="w-5 h-5" />
-                ENTRAR NO SISTEMA
+                {isLoading ? 'ENTRANDO...' : 'ENTRAR NO SISTEMA'}
               </button>
             </form>
           )}
@@ -163,7 +181,7 @@ export const LoginPage: React.FC = () => {
                   ACESSO DE ADMINISTRADOR
                 </h2>
                 <p className="text-xs text-industrial-textMuted mt-0.5">
-                  Área restrita de gestão. Requer senha de acesso.
+                  Área restrita de gestão. Autenticação via banco de dados Supabase.
                 </p>
               </div>
 
@@ -178,7 +196,8 @@ export const LoginPage: React.FC = () => {
                   value={adminUsername}
                   onChange={e => {
                     setAdminUsername(e.target.value);
-                    setErrorMsg(null);
+                    setLocalError(null);
+                    setAuthError(null);
                   }}
                   placeholder="Nome do usuário admin (ex: fabio)"
                   className="w-full bg-industrial-bg border border-industrial-border rounded-xl py-3.5 px-4 text-white text-sm focus:border-blue-500 focus:outline-none transition-all"
@@ -197,7 +216,8 @@ export const LoginPage: React.FC = () => {
                     value={adminPassword}
                     onChange={e => {
                       setAdminPassword(e.target.value);
-                      setErrorMsg(null);
+                      setLocalError(null);
+                      setAuthError(null);
                     }}
                     placeholder="Digite sua senha"
                     className="w-full bg-industrial-bg border border-industrial-border rounded-xl py-3.5 pl-4 pr-11 text-white text-sm font-mono focus:border-blue-500 focus:outline-none transition-all"
@@ -212,11 +232,6 @@ export const LoginPage: React.FC = () => {
                 </div>
               </div>
 
-              {/* Hint Box */}
-              <div className="p-3 bg-industrial-bg/80 border border-industrial-border rounded-xl text-[11px] text-industrial-textMuted font-mono">
-                <strong className="text-white">Admin:</strong> <code className="text-blue-400 font-bold">fabio</code> • Senha: <code className="text-blue-400 font-bold">123</code>
-              </div>
-
               {errorMsg && (
                 <div className="p-3 bg-rose-950/80 border border-rose-600/60 rounded-xl text-xs text-rose-300 flex items-center gap-2 font-medium animate-fade-in">
                   <AlertCircle className="w-4 h-4 text-rose-400 shrink-0" />
@@ -226,10 +241,11 @@ export const LoginPage: React.FC = () => {
 
               <button
                 type="submit"
-                className="w-full h-13 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-indigo-600 hover:to-blue-500 text-white font-extrabold rounded-xl shadow-scada-glow flex items-center justify-center gap-2 text-sm uppercase tracking-wider active:scale-98 transition-all"
+                disabled={isLoading}
+                className="w-full h-13 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-indigo-600 hover:to-blue-500 text-white font-extrabold rounded-xl shadow-scada-glow flex items-center justify-center gap-2 text-sm uppercase tracking-wider active:scale-98 transition-all disabled:opacity-50"
               >
                 <ShieldCheck className="w-5 h-5" />
-                ENTRAR COMO ADMIN
+                {isLoading ? 'AUTENTICANDO NO SUPABASE...' : 'ENTRAR COMO ADMIN'}
               </button>
             </form>
           )}

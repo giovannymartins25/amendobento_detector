@@ -1,7 +1,9 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { analyticsEngine } from '../services/analyticsEngine';
+import { supabaseService } from '../services/supabaseService';
+import { RoastSession, PredictiveAlert } from '../types/roast';
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell } from 'recharts';
-import { BarChart3, Award, AlertTriangle, Users, Flame, Clock } from 'lucide-react';
+import { BarChart3, Award, AlertTriangle, Users, Flame, Clock, Loader2 } from 'lucide-react';
 
 import { AnalyticsSubNav } from '../components/common/AnalyticsSubNav';
 
@@ -10,7 +12,30 @@ interface AdminDashboardPageProps {
 }
 
 export const AdminDashboardPage: React.FC<AdminDashboardPageProps> = ({ onTabChange }) => {
-  const kpis = analyticsEngine.getGlobalKpis();
+  const [sessions, setSessions] = useState<RoastSession[]>([]);
+  const [alerts, setAlerts] = useState<PredictiveAlert[]>([]);
+  const [isLoading, setIsLoading] = useState<boolean>(true);
+
+  useEffect(() => {
+    async function loadData() {
+      setIsLoading(true);
+      try {
+        const [remoteSessions, remoteAlerts] = await Promise.all([
+          supabaseService.fetchSessions(),
+          supabaseService.fetchAlerts(),
+        ]);
+        if (remoteSessions) setSessions(remoteSessions);
+        if (remoteAlerts) setAlerts(remoteAlerts);
+      } catch (e) {
+        console.warn('[AdminDashboardPage] Erro ao buscar dados do Supabase DB:', e);
+      } finally {
+        setIsLoading(false);
+      }
+    }
+    loadData();
+  }, []);
+
+  const kpis = analyticsEngine.getGlobalKpis(sessions, alerts);
 
   const ovenChartData = kpis.ovenStats.map(stat => ({
     name: `Forno ${stat.ovenId}`,
@@ -19,13 +44,25 @@ export const AdminDashboardPage: React.FC<AdminDashboardPageProps> = ({ onTabCha
     efficiency: stat.efficiencyRating,
   }));
 
-  const operatorChartData = [
-    { name: 'João Silva', roasts: 18, avgMin: 9.8 },
-    { name: 'Carlos Souza', roasts: 15, avgMin: 10.2 },
-    { name: 'Mariana Oliveira', roasts: 12, avgMin: 9.5 },
-  ];
+  const operatorChartData = kpis.operatorChartData && kpis.operatorChartData.length > 0
+    ? kpis.operatorChartData
+    : [
+        { name: 'Nenhum operador', roasts: 0, avgMin: 0 },
+      ];
 
   const COLORS = ['#10B981', '#F59E0B', '#3875F6'];
+
+  if (isLoading) {
+    return (
+      <div className="space-y-6 pb-20">
+        {onTabChange && <AnalyticsSubNav activeTab="admin" setActiveTab={onTabChange} />}
+        <div className="bg-industrial-card border border-industrial-border rounded-2xl p-12 text-center text-industrial-textMuted text-sm flex flex-col items-center justify-center gap-3">
+          <Loader2 className="w-8 h-8 text-industrial-accent animate-spin" />
+          <span>Carregando métricas SCADA do Supabase DB...</span>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6 pb-20">
@@ -55,7 +92,9 @@ export const AdminDashboardPage: React.FC<AdminDashboardPageProps> = ({ onTabCha
             <Flame className="w-4 h-4 text-industrial-accent" />
           </div>
           <div className="font-mono text-3xl font-black text-white">{kpis.totalRoasts}</div>
-          <div className="text-[10px] text-emerald-400 font-semibold">↑ 14% vs mês anterior</div>
+          <div className="text-[10px] text-industrial-textMuted font-semibold">
+            {kpis.totalRoasts > 0 ? `${kpis.totalRoasts} torras concluídas` : 'Nenhuma torra registrada'}
+          </div>
         </div>
 
         <div className="bg-industrial-card border border-industrial-border p-4 rounded-2xl shadow-scada space-y-1">
@@ -74,8 +113,12 @@ export const AdminDashboardPage: React.FC<AdminDashboardPageProps> = ({ onTabCha
             <span>Melhor Forno</span>
             <Award className="w-4 h-4 text-amber-400" />
           </div>
-          <div className="font-mono text-3xl font-black text-amber-400">Forno {kpis.bestOvenId}</div>
-          <div className="text-[10px] text-amber-300/80 font-semibold">Maior estabilidade de torração</div>
+          <div className="font-mono text-3xl font-black text-amber-400">
+            {kpis.totalRoasts > 0 ? `Forno ${kpis.bestOvenId}` : 'N/A'}
+          </div>
+          <div className="text-[10px] text-amber-300/80 font-semibold">
+            {kpis.totalRoasts > 0 ? 'Maior estabilidade de torração' : 'Aguardando histórico'}
+          </div>
         </div>
 
         <div className="bg-industrial-card border border-industrial-border p-4 rounded-2xl shadow-scada space-y-1">
@@ -89,18 +132,20 @@ export const AdminDashboardPage: React.FC<AdminDashboardPageProps> = ({ onTabCha
 
       </div>
 
-      {/* Predictive Maintenance Warning Banner */}
-      <div className="bg-rose-950/70 border border-rose-600/50 p-5 rounded-2xl shadow-danger-glow flex items-start gap-4">
-        <div className="w-10 h-10 rounded-xl bg-rose-900/80 text-rose-400 flex items-center justify-center flex-shrink-0 mt-0.5 animate-pulse">
-          <AlertTriangle className="w-6 h-6" />
+      {/* Predictive Maintenance Warning Banner (exibido apenas quando detectado desvio real de forno) */}
+      {kpis.maintenanceAlert && (
+        <div className="bg-rose-950/70 border border-rose-600/50 p-5 rounded-2xl shadow-danger-glow flex items-start gap-4">
+          <div className="w-10 h-10 rounded-xl bg-rose-900/80 text-rose-400 flex items-center justify-center flex-shrink-0 mt-0.5 animate-pulse">
+            <AlertTriangle className="w-6 h-6" />
+          </div>
+          <div>
+            <h4 className="font-extrabold text-sm text-rose-200 font-mono">ALERTA DE MANUTENÇÃO PREDITIVA — FORNO {kpis.maintenanceAlert.ovenId}</h4>
+            <p className="text-xs text-rose-300 mt-1 leading-relaxed">
+              {kpis.maintenanceAlert.reason}
+            </p>
+          </div>
         </div>
-        <div>
-          <h4 className="font-extrabold text-sm text-rose-200 font-mono">ALERTA DE MANUTENÇÃO PREDITIVA — FORNO {kpis.slowestOvenId}</h4>
-          <p className="text-xs text-rose-300 mt-1 leading-relaxed">
-            O <strong>Forno {kpis.slowestOvenId}</strong> está com um tempo médio de torra 18% superior à média dos demais fornos. Recomenda-se realizar inspeção técnica preventiva nos elementos de aquecimento.
-          </p>
-        </div>
-      </div>
+      )}
 
       {/* Charts Section */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">

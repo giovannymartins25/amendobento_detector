@@ -5,5 +5,7 @@ node_modules/
 dist/
 build/
 
-# Credenciais locais (opcional)
+# Credenciais e ambientes locais
 .env
+.env.local
+.env.*.local

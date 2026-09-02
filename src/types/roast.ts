@@ -21,6 +21,7 @@ export interface User {
   role: UserRole;
   avatar?: string;
   shift?: string;
+  password?: string;
 }
 
 export interface DetectedObject {

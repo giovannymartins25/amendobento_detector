@@ -1,8 +1,9 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { analyticsEngine } from '../services/analyticsEngine';
+import { supabaseService } from '../services/supabaseService';
+import { AnalysisResult, RoastSession, RoastStage } from '../types/roast';
 import { getStageLabel } from '../utils/formatters';
-import { RoastStage } from '../types/roast';
-import { BrainCircuit, ThumbsUp, ThumbsDown, TrendingUp, Layers } from 'lucide-react';
+import { BrainCircuit, ThumbsUp, ThumbsDown, TrendingUp, Layers, Loader2 } from 'lucide-react';
 import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer } from 'recharts';
 import { AnalyticsSubNav } from '../components/common/AnalyticsSubNav';
 
@@ -11,7 +12,42 @@ interface AiPerformancePageProps {
 }
 
 export const AiPerformancePage: React.FC<AiPerformancePageProps> = ({ onTabChange }) => {
-  const metrics = analyticsEngine.getAiModelMetrics();
+  const [analyses, setAnalyses] = useState<AnalysisResult[]>([]);
+  const [sessions, setSessions] = useState<RoastSession[]>([]);
+  const [isLoading, setIsLoading] = useState<boolean>(true);
+
+  useEffect(() => {
+    async function loadData() {
+      setIsLoading(true);
+      try {
+        const [remoteAnalyses, remoteSessions] = await Promise.all([
+          supabaseService.fetchAnalyses(),
+          supabaseService.fetchSessions(),
+        ]);
+        if (remoteAnalyses) setAnalyses(remoteAnalyses);
+        if (remoteSessions) setSessions(remoteSessions);
+      } catch (e) {
+        console.warn('[AiPerformancePage] Erro ao buscar análises no Supabase DB:', e);
+      } finally {
+        setIsLoading(false);
+      }
+    }
+    loadData();
+  }, []);
+
+  const metrics = analyticsEngine.getAiModelMetrics(analyses, sessions);
+
+  if (isLoading) {
+    return (
+      <div className="space-y-6 pb-20">
+        {onTabChange && <AnalyticsSubNav activeTab="ai-performance" setActiveTab={onTabChange} />}
+        <div className="bg-industrial-card border border-industrial-border rounded-2xl p-12 text-center text-industrial-textMuted text-sm flex flex-col items-center justify-center gap-3">
+          <Loader2 className="w-8 h-8 text-purple-400 animate-spin" />
+          <span>Carregando dados de inteligência computacional do Supabase DB...</span>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6 pb-20">

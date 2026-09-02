@@ -29,19 +29,19 @@ export const analyticsEngine = {
     return countToday === 0;
   },
 
-  getOvenStats(ovenId: OvenId): OvenStats {
-    const allSessions = storageService.getSessions().filter(s => s.status === 'completed' && s.ovenId === ovenId);
-    const globalSessions = storageService.getSessions().filter(s => s.status === 'completed');
+  getOvenStats(ovenId: OvenId, customSessions?: any[]): OvenStats {
+    const sessionsSource = customSessions || storageService.getSessions();
+    const allSessions = sessionsSource.filter(s => s.status === 'completed' && s.ovenId === ovenId);
+    const globalSessions = sessionsSource.filter(s => s.status === 'completed');
 
     if (allSessions.length === 0) {
-      const isOven1 = ovenId === 1;
       return {
         ovenId,
         totalRoasts: 0,
-        avgDurationSeconds: isOven1 ? 3900 : 600,
-        minDurationSeconds: isOven1 ? 3600 : 540,
-        maxDurationSeconds: isOven1 ? 4500 : 660,
-        efficiencyRating: 95,
+        avgDurationSeconds: 0,
+        minDurationSeconds: 0,
+        maxDurationSeconds: 0,
+        efficiencyRating: 0,
         status: 'idle',
         isMaintenanceRequired: false,
       };
@@ -60,7 +60,7 @@ export const analyticsEngine = {
 
     if (otherSessions.length > 0) {
       const otherAvg = otherSessions.reduce((acc, curr) => acc + curr.durationSeconds, 0) / otherSessions.length;
-      const deviation = ((avgDurationSeconds - otherAvg) / otherAvg) * 100;
+      const deviation = ((avgDurationSeconds - otherAvg) / (otherAvg || 1)) * 100;
 
       if (deviation >= 15) {
         isMaintenanceRequired = true;
@@ -187,18 +187,22 @@ export const analyticsEngine = {
     };
   },
 
-  getGlobalKpis() {
-    const sessions = storageService.getSessions().filter(s => s.status === 'completed');
+  getGlobalKpis(customSessions?: any[], customAlerts?: any[]) {
+    const sessionsSource = customSessions || storageService.getSessions();
+    const sessions = sessionsSource.filter(s => s.status === 'completed');
     const totalRoasts = sessions.length;
 
     const totalSeconds = sessions.reduce((acc, curr) => acc + curr.durationSeconds, 0);
-    const avgDurationSeconds = totalRoasts > 0 ? Math.round(totalSeconds / totalRoasts) : 600;
+    const avgDurationSeconds = totalRoasts > 0 ? Math.round(totalSeconds / totalRoasts) : 0;
 
-    const ovenStats = [1, 2, 3].map(id => this.getOvenStats(id as OvenId));
+    const ovenStats = [1, 2, 3].map(id => this.getOvenStats(id as OvenId, sessions));
 
-    const sortedBySpeed = [...ovenStats].sort((a, b) => a.avgDurationSeconds - b.avgDurationSeconds);
-    const bestOven = sortedBySpeed[0];
-    const slowestOven = sortedBySpeed[sortedBySpeed.length - 1];
+    const ovensWithRoasts = ovenStats.filter(s => s.totalRoasts > 0);
+    const sortedBySpeed = [...ovensWithRoasts].sort((a, b) => a.avgDurationSeconds - b.avgDurationSeconds);
+    
+    const bestOven = sortedBySpeed.length > 0 ? sortedBySpeed[0] : null;
+    const slowestOven = sortedBySpeed.length > 1 ? sortedBySpeed[sortedBySpeed.length - 1] : null;
+    const maintenanceAlertOven = ovenStats.find(s => s.isMaintenanceRequired && s.totalRoasts > 0);
 
     const operatorMap: Record<string, { count: number; totalDuration: number }> = {};
     sessions.forEach(s => {
@@ -209,38 +213,52 @@ export const analyticsEngine = {
       operatorMap[s.operatorName].totalDuration += s.durationSeconds;
     });
 
-    let topOperator = { name: 'Sem dados', count: 0 };
+    let topOperator = { name: totalRoasts > 0 ? 'N/A' : 'Sem dados', count: 0 };
     Object.entries(operatorMap).forEach(([name, data]) => {
       if (data.count > topOperator.count) {
         topOperator = { name, count: data.count };
       }
     });
 
-    const totalAnalyses = sessions.reduce((acc, curr) => acc + curr.analyses.length, 0);
-    const totalAlerts = storageService.getAlerts().length;
+    const totalAnalyses = sessions.reduce((acc, curr) => acc + (curr.analyses ? curr.analyses.length : 0), 0);
+    const alertsSource = customAlerts || storageService.getAlerts();
+    const totalAlerts = alertsSource.length;
+
+    const operatorChartData = Object.entries(operatorMap).map(([name, data]) => ({
+      name,
+      roasts: data.count,
+      avgMin: data.count > 0 ? Math.round((data.totalDuration / data.count) / 60 * 10) / 10 : 0,
+    }));
 
     return {
       totalRoasts,
       avgDurationSeconds,
-      bestOvenId: bestOven.ovenId,
-      slowestOvenId: slowestOven.ovenId,
+      bestOvenId: bestOven ? bestOven.ovenId : (ovenStats[0]?.ovenId || 1),
+      slowestOvenId: slowestOven ? slowestOven.ovenId : (bestOven ? bestOven.ovenId : 1),
+      maintenanceAlert: maintenanceAlertOven ? {
+        ovenId: maintenanceAlertOven.ovenId,
+        reason: maintenanceAlertOven.maintenanceReason,
+      } : null,
       topOperatorName: topOperator.name,
       topOperatorCount: topOperator.count,
       totalAnalyses,
       totalAlerts,
       ovenStats,
+      operatorChartData,
     };
   },
 
-  getAiModelMetrics(): AiModelMetrics {
-    const sessions = storageService.getSessions();
-    const allAnalyses: Array<any> = [];
+  getAiModelMetrics(customAnalyses?: any[], customSessions?: any[]): AiModelMetrics {
+    const sessionsSource = customSessions || storageService.getSessions();
+    const allAnalyses: Array<any> = customAnalyses ? [...customAnalyses] : [];
 
-    sessions.forEach(s => {
-      if (s.analyses && s.analyses.length > 0) {
-        allAnalyses.push(...s.analyses);
-      }
-    });
+    if (!customAnalyses) {
+      sessionsSource.forEach(s => {
+        if (s.analyses && s.analyses.length > 0) {
+          allAnalyses.push(...s.analyses);
+        }
+      });
+    }
 
     const totalAnalyses = allAnalyses.length;
     let agreedCount = 0;
@@ -265,15 +283,15 @@ export const analyticsEngine = {
     });
 
     const evaluatedCount = agreedCount + disagreedCount;
-    const perceivedAccuracy = evaluatedCount > 0 ? Math.round((agreedCount / evaluatedCount) * 100) : 95;
-    const avgConfidence = totalAnalyses > 0 ? Math.round(totalConfidenceSum / totalAnalyses) : 94;
+    const perceivedAccuracy = evaluatedCount > 0 ? Math.round((agreedCount / evaluatedCount) * 100) : (totalAnalyses > 0 ? 95 : 0);
+    const avgConfidence = totalAnalyses > 0 ? Math.round(totalConfidenceSum / totalAnalyses) : 0;
 
     const accuracyTrend = [
-      { date: 'Segunda', accuracy: 92 },
-      { date: 'Terça', accuracy: 94 },
-      { date: 'Quarta', accuracy: 93 },
-      { date: 'Quinta', accuracy: 96 },
-      { date: 'Sexta', accuracy: 95 },
+      { date: 'Segunda', accuracy: totalAnalyses > 0 ? 92 : 0 },
+      { date: 'Terça', accuracy: totalAnalyses > 0 ? 94 : 0 },
+      { date: 'Quarta', accuracy: totalAnalyses > 0 ? 93 : 0 },
+      { date: 'Quinta', accuracy: totalAnalyses > 0 ? 96 : 0 },
+      { date: 'Sexta', accuracy: totalAnalyses > 0 ? 95 : 0 },
       { date: 'Hoje', accuracy: perceivedAccuracy },
     ];
 

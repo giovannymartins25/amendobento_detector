@@ -1,8 +1,8 @@
-import React, { useState } from 'react';
-import { storageService } from '../services/storageService';
+import React, { useState, useEffect } from 'react';
+import { supabaseService } from '../services/supabaseService';
 import { RoastSession } from '../types/roast';
 import { formatDateTime, formatSecondsToReadable, getStageBadgeStyles, getStageLabel } from '../utils/formatters';
-import { History as HistoryIcon, Search, Filter, X, Clock, User } from 'lucide-react';
+import { History as HistoryIcon, Search, Filter, X, Clock, User, Loader2 } from 'lucide-react';
 import { AnalyticsSubNav } from '../components/common/AnalyticsSubNav';
 
 interface HistoryPageProps {
@@ -10,11 +10,28 @@ interface HistoryPageProps {
 }
 
 export const HistoryPage: React.FC<HistoryPageProps> = ({ onTabChange }) => {
-  const sessions = storageService.getSessions().filter(s => s.status === 'completed');
-
+  const [sessions, setSessions] = useState<RoastSession[]>([]);
+  const [isLoading, setIsLoading] = useState<boolean>(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [filterOven, setFilterOven] = useState<string>('all');
   const [selectedSession, setSelectedSession] = useState<RoastSession | null>(null);
+
+  useEffect(() => {
+    async function loadSessions() {
+      setIsLoading(true);
+      try {
+        const data = await supabaseService.fetchSessions();
+        if (data) {
+          setSessions(data.filter(s => s.status === 'completed'));
+        }
+      } catch (e) {
+        console.warn('[HistoryPage] Erro ao buscar histórico no Supabase DB:', e);
+      } finally {
+        setIsLoading(false);
+      }
+    }
+    loadSessions();
+  }, []);
 
   const filteredSessions = sessions.filter(session => {
     const matchesSearch = session.operatorName.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -82,12 +99,18 @@ export const HistoryPage: React.FC<HistoryPageProps> = ({ onTabChange }) => {
       </div>
 
       {/* Sessions Table / List */}
-      <div className="space-y-3">
-        {filteredSessions.length === 0 ? (
-          <div className="bg-industrial-card border border-industrial-border rounded-2xl p-8 text-center text-industrial-textMuted text-sm">
-            Nenhuma torra encontrada com os filtros selecionados.
-          </div>
-        ) : (
+      {isLoading ? (
+        <div className="bg-industrial-card border border-industrial-border rounded-2xl p-12 text-center text-industrial-textMuted text-sm flex flex-col items-center justify-center gap-3">
+          <Loader2 className="w-8 h-8 text-industrial-accent animate-spin" />
+          <span>Carregando histórico de torras do Supabase...</span>
+        </div>
+      ) : (
+        <div className="space-y-3">
+          {filteredSessions.length === 0 ? (
+            <div className="bg-industrial-card border border-industrial-border rounded-2xl p-8 text-center text-industrial-textMuted text-sm">
+              Nenhuma torra encontrada com os filtros selecionados.
+            </div>
+          ) : (
           filteredSessions.map(session => {
             const finalStage = session.finalStage || 'ideal';
             const styles = getStageBadgeStyles(finalStage);
@@ -128,6 +151,7 @@ export const HistoryPage: React.FC<HistoryPageProps> = ({ onTabChange }) => {
           })
         )}
       </div>
+      )}
 
       {/* Session Details Modal */}
       {selectedSession && (
