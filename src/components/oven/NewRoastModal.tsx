@@ -23,7 +23,7 @@ export const NewRoastModal: React.FC<NewRoastModalProps> = ({
   const availableOvens = ovens.filter(o => o.status === 'active');
   const [selectedOvenId, setSelectedOvenId] = useState<OvenId>(ovenId || 1);
   const [selectedOperatorId, setSelectedOperatorId] = useState(currentUser.id);
-  const [targetQuantityKg, setTargetQuantityKg] = useState<number>(50);
+  const [targetQuantityKg, setTargetQuantityKg] = useState<number>(25);
 
   useEffect(() => {
     if (ovenId !== null) {
@@ -134,7 +134,7 @@ export const NewRoastModal: React.FC<NewRoastModalProps> = ({
                 type="number"
                 value={targetQuantityKg}
                 onChange={(e) => setTargetQuantityKg(Number(e.target.value))}
-                placeholder="Ex: 50"
+                placeholder="Ex: 25"
                 className="w-full bg-industrial-bg border border-industrial-border rounded-xl p-3.5 text-white font-mono font-bold text-sm focus:border-industrial-accent focus:outline-none"
               />
             </div>
